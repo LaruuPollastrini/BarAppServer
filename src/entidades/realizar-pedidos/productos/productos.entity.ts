@@ -1,7 +1,4 @@
-import { Formulario } from "src/entidades/seguridad/formulario/formulario.entity";
-import { Grupo } from "src/entidades/seguridad/grupos/grupos.entity";
-import { ManyToMany, PrimaryGeneratedColumn, Entity, Column, JoinColumn, ManyToOne, OneToMany } from "typeorm";
-import { DetallesPedido } from "../detallePedido/detallespedido.entity";
+import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
 
 @Entity()
 export class Producto {
@@ -17,6 +14,6 @@ export class Producto {
   @Column()
   precio: number;
 
-  @Column({default: false})
+  @Column({ default: false })
   estaEliminado: boolean;
 }

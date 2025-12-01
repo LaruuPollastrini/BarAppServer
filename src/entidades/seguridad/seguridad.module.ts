@@ -7,10 +7,15 @@ import { AccionesGuard } from './guards/acciones.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from './users/users.entity';
 import { Grupo } from './grupos/grupos.entity';
+import { ModuloModule } from './modulo/modulo.module';
+import { FormularioModule } from './formulario/formulario.module';
+import { AccionesModule } from './acciones/acciones.module';
+import { GruposModule } from './grupos/grupos.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-      TypeOrmModule.forFeature([User, Grupo]),
+    TypeOrmModule.forFeature([User, Grupo]),
     PassportModule,
     JwtModule.register({
       // agregar key
@@ -18,6 +23,11 @@ import { Grupo } from './grupos/grupos.entity';
       signOptions: { expiresIn: '24h' },
       global: true,
     }),
+    ModuloModule,
+    FormularioModule,
+    AccionesModule,
+    GruposModule,
+    UsersModule,
   ],
   providers: [SeguridadService, AccionesGuard, JwtStrategy],
   exports: [SeguridadService, AccionesGuard],

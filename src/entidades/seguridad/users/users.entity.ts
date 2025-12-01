@@ -33,7 +33,7 @@ export class User {
   })
   pedidos: Pedidos[];
 
-  @ManyToMany(() => Grupo, grupo => grupo.usuarios, { eager: true })
+  @ManyToMany(() => Grupo, grupo => grupo.usuarios)
   @JoinTable({
     name: 'usuario_grupo',
     joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
