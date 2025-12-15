@@ -1,6 +1,12 @@
 import { Pedidos } from 'src/entidades/realizar-pedidos/pedidos/pedidos.entity';
 import { Grupo } from 'src/entidades/seguridad/grupos/grupos.entity';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 
 @Entity()
 export class User {
@@ -25,7 +31,7 @@ export class User {
   @Column({ default: true })
   EstaActivo: boolean;
 
-  @ManyToMany(() => Pedidos, pedidos => pedidos.user)
+  @ManyToMany(() => Pedidos, (pedidos) => pedidos.user)
   @JoinTable({
     name: 'usuario_pedido',
     joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
@@ -33,7 +39,7 @@ export class User {
   })
   pedidos: Pedidos[];
 
-  @ManyToMany(() => Grupo, grupo => grupo.usuarios)
+  @ManyToMany(() => Grupo, (grupo) => grupo.usuarios)
   @JoinTable({
     name: 'usuario_grupo',
     joinColumn: { name: 'usuario_id', referencedColumnName: 'id' },
@@ -44,17 +50,17 @@ export class User {
   // ← Verifica si tiene una acción específica
   tieneAccion(nombreAccion: string): boolean {
     if (!this.grupos || this.grupos.length === 0) return false;
-    
-    return this.grupos.some(grupo => grupo.tieneAccion(nombreAccion));
+
+    return this.grupos.some((grupo) => grupo.tieneAccion(nombreAccion));
   }
 
   // ← Obtiene todas las acciones del usuario
   obtenerAcciones(): string[] {
     if (!this.grupos || this.grupos.length === 0) return [];
-    
+
     const acciones = new Set<string>();
-    this.grupos.forEach(grupo => {
-      grupo.obtenerAcciones().forEach(a => acciones.add(a));
+    this.grupos.forEach((grupo) => {
+      grupo.obtenerAcciones().forEach((a) => acciones.add(a));
     });
     return Array.from(acciones);
   }

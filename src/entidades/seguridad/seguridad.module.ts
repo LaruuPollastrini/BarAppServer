@@ -7,6 +7,7 @@ import { AccionesGuard } from './guards/acciones.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from './users/users.entity';
 import { Grupo } from './grupos/grupos.entity';
+import { Modulo } from './modulo/modulo.entity';
 import { ModuloModule } from './modulo/modulo.module';
 import { FormularioModule } from './formulario/formulario.module';
 import { AccionesModule } from './acciones/acciones.module';
@@ -15,7 +16,7 @@ import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Grupo]),
+    TypeOrmModule.forFeature([User, Grupo, Modulo]),
     PassportModule,
     JwtModule.register({
       // agregar key

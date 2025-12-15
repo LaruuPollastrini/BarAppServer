@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Formulario } from './formulario.entity';
 import { Modulo } from '../modulo/modulo.entity';
-import { CreateFormularioDto, UpdateFormularioDto } from './formulario.dto';
+import { CreateFormularioDto, UpdateFormularioDto, FormularioResponseDto } from './formulario.dto';
 
 @Injectable()
 export class FormularioService {
@@ -14,13 +14,31 @@ export class FormularioService {
     private moduloRepository: Repository<Modulo>,
   ) {}
 
-  async findAll(): Promise<Formulario[]> {
-    return this.formularioRepository.find({
-      relations: ['modulo', 'acciones'],
-    });
+  private transformToResponseDto(formulario: Formulario): FormularioResponseDto {
+    return {
+      id: formulario.id,
+      nombre: formulario.nombre,
+      modulo: formulario.modulo
+        ? {
+            id: formulario.modulo.id,
+            nombre: formulario.modulo.nombre,
+          }
+        : undefined,
+      acciones: formulario.acciones?.map((accion) => ({
+        id: accion.id,
+        nombre: accion.nombre,
+      })),
+    };
   }
 
-  async findOne(id: number): Promise<Formulario> {
+  async findAll(): Promise<FormularioResponseDto[]> {
+    const formularios = await this.formularioRepository.find({
+      relations: ['modulo', 'acciones'],
+    });
+    return formularios.map((formulario) => this.transformToResponseDto(formulario));
+  }
+
+  async findOne(id: number): Promise<FormularioResponseDto> {
     const formulario = await this.formularioRepository.findOne({
       where: { id },
       relations: ['modulo', 'acciones'],
@@ -30,17 +48,17 @@ export class FormularioService {
       throw new NotFoundException(`Formulario with ID ${id} not found`);
     }
 
-    return formulario;
+    return this.transformToResponseDto(formulario);
   }
 
-  async create(createFormularioDto: CreateFormularioDto): Promise<Formulario> {
+  async create(createFormularioDto: CreateFormularioDto): Promise<FormularioResponseDto> {
     const modulo = await this.moduloRepository.findOne({
-      where: { id: createFormularioDto.modulo_id },
+      where: { id: createFormularioDto.moduloId },
     });
 
     if (!modulo) {
       throw new NotFoundException(
-        `Modulo with ID ${createFormularioDto.modulo_id} not found`,
+        `Modulo with ID ${createFormularioDto.moduloId} not found`,
       );
     }
 
@@ -55,16 +73,16 @@ export class FormularioService {
   async update(
     id: number,
     updateFormularioDto: UpdateFormularioDto,
-  ): Promise<Formulario> {
+  ): Promise<FormularioResponseDto> {
     await this.findOne(id); // Check if formulario exists
 
     const modulo = await this.moduloRepository.findOne({
-      where: { id: updateFormularioDto.modulo_id },
+      where: { id: updateFormularioDto.moduloId },
     });
 
     if (!modulo) {
       throw new NotFoundException(
-        `Modulo with ID ${updateFormularioDto.modulo_id} not found`,
+        `Modulo with ID ${updateFormularioDto.moduloId} not found`,
       );
     }
 

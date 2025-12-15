@@ -79,19 +79,19 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
     const user = this.usersRepository.create({
-      Nombre: createUserDto.Nombre,
-      Apellido: createUserDto.Apellido,
-      Correo: createUserDto.Correo,
-      Contrasena: createUserDto.Contrasena,
-      Telefono: createUserDto.Telefono,
-      EstaActivo: createUserDto.EstaActivo !== undefined ? createUserDto.EstaActivo : true,
+      Nombre: createUserDto.nombre,
+      Apellido: createUserDto.apellido,
+      Correo: createUserDto.correo,
+      Contrasena: createUserDto.contrasena,
+      Telefono: createUserDto.telefono,
+      EstaActivo: createUserDto.estaActivo !== undefined ? createUserDto.estaActivo : true,
     });
 
     const savedUser = await this.usersRepository.save(user);
 
-    if (createUserDto.grupos_ids && createUserDto.grupos_ids.length > 0) {
+    if (createUserDto.gruposIds && createUserDto.gruposIds.length > 0) {
       const grupos = await this.grupoRepository.findBy({
-        id: In(createUserDto.grupos_ids),
+        id: In(createUserDto.gruposIds),
       });
       savedUser.grupos = grupos;
       await this.usersRepository.save(savedUser);
@@ -110,17 +110,17 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    user.Nombre = updateUserDto.Nombre;
-    user.Apellido = updateUserDto.Apellido;
-    user.Correo = updateUserDto.Correo;
-    user.Telefono = updateUserDto.Telefono;
-    if (updateUserDto.EstaActivo !== undefined) {
-      user.EstaActivo = updateUserDto.EstaActivo;
+    user.Nombre = updateUserDto.nombre;
+    user.Apellido = updateUserDto.apellido;
+    user.Correo = updateUserDto.correo;
+    user.Telefono = updateUserDto.telefono;
+    if (updateUserDto.estaActivo !== undefined) {
+      user.EstaActivo = updateUserDto.estaActivo;
     }
 
-    if (updateUserDto.grupos_ids !== undefined) {
+    if (updateUserDto.gruposIds !== undefined) {
       const grupos = await this.grupoRepository.findBy({
-        id: In(updateUserDto.grupos_ids),
+        id: In(updateUserDto.gruposIds),
       });
       user.grupos = grupos;
     }

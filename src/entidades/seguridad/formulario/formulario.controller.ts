@@ -9,27 +9,26 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { FormularioService } from './formulario.service';
-import { CreateFormularioDto, UpdateFormularioDto } from './formulario.dto';
-import { Formulario } from './formulario.entity';
+import { CreateFormularioDto, UpdateFormularioDto, FormularioResponseDto } from './formulario.dto';
 
 @Controller('formularios')
 export class FormularioController {
   constructor(private readonly formularioService: FormularioService) {}
 
   @Get()
-  async findAll(): Promise<Formulario[]> {
+  async findAll(): Promise<FormularioResponseDto[]> {
     return this.formularioService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Formulario> {
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<FormularioResponseDto> {
     return this.formularioService.findOne(id);
   }
 
   @Post()
   async create(
     @Body() createFormularioDto: CreateFormularioDto,
-  ): Promise<Formulario> {
+  ): Promise<FormularioResponseDto> {
     return this.formularioService.create(createFormularioDto);
   }
 
@@ -37,7 +36,7 @@ export class FormularioController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateFormularioDto: UpdateFormularioDto,
-  ): Promise<Formulario> {
+  ): Promise<FormularioResponseDto> {
     return this.formularioService.update(id, updateFormularioDto);
   }
 

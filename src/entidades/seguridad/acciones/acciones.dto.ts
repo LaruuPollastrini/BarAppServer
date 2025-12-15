@@ -1,10 +1,18 @@
 export class CreateAccionDto {
   nombre: string;
-  formulario_id: number;
+  formularioId: number;
 }
 
 export class UpdateAccionDto {
   nombre: string;
-  formulario_id: number;
+  formularioId: number;
 }
 
+export class AccionResponseDto {
+  id: number;
+  nombre: string;
+  formulario?: {
+    id: number;
+    nombre: string;
+  };
+}

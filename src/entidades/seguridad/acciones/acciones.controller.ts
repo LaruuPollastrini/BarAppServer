@@ -9,25 +9,24 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { AccionesService } from './acciones.service';
-import { CreateAccionDto, UpdateAccionDto } from './acciones.dto';
-import { Accion } from './acciones.entity';
+import { CreateAccionDto, UpdateAccionDto, AccionResponseDto } from './acciones.dto';
 
 @Controller('acciones')
 export class AccionesController {
   constructor(private readonly accionesService: AccionesService) {}
 
   @Get()
-  async findAll(): Promise<Accion[]> {
+  async findAll(): Promise<AccionResponseDto[]> {
     return this.accionesService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Accion> {
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<AccionResponseDto> {
     return this.accionesService.findOne(id);
   }
 
   @Post()
-  async create(@Body() createAccionDto: CreateAccionDto): Promise<Accion> {
+  async create(@Body() createAccionDto: CreateAccionDto): Promise<AccionResponseDto> {
     return this.accionesService.create(createAccionDto);
   }
 
@@ -35,7 +34,7 @@ export class AccionesController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateAccionDto: UpdateAccionDto,
-  ): Promise<Accion> {
+  ): Promise<AccionResponseDto> {
     return this.accionesService.update(id, updateAccionDto);
   }
 

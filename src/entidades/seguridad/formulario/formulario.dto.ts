@@ -1,10 +1,22 @@
 export class CreateFormularioDto {
   nombre: string;
-  modulo_id: number;
+  moduloId: number;
 }
 
 export class UpdateFormularioDto {
   nombre: string;
-  modulo_id: number;
+  moduloId: number;
 }
 
+export class FormularioResponseDto {
+  id: number;
+  nombre: string;
+  modulo?: {
+    id: number;
+    nombre: string;
+  };
+  acciones?: Array<{
+    id: number;
+    nombre: string;
+  }>;
+}

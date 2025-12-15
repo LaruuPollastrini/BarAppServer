@@ -9,25 +9,24 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ModuloService } from './modulo.service';
-import { CreateModuloDto, UpdateModuloDto } from './modulo.dto';
-import { Modulo } from './modulo.entity';
+import { CreateModuloDto, UpdateModuloDto, ModuloResponseDto } from './modulo.dto';
 
 @Controller('modulos')
 export class ModuloController {
   constructor(private readonly moduloService: ModuloService) {}
 
   @Get()
-  async findAll(): Promise<Modulo[]> {
+  async findAll(): Promise<ModuloResponseDto[]> {
     return this.moduloService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Modulo> {
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<ModuloResponseDto> {
     return this.moduloService.findOne(id);
   }
 
   @Post()
-  async create(@Body() createModuloDto: CreateModuloDto): Promise<Modulo> {
+  async create(@Body() createModuloDto: CreateModuloDto): Promise<ModuloResponseDto> {
     return this.moduloService.create(createModuloDto);
   }
 
@@ -35,7 +34,7 @@ export class ModuloController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateModuloDto: UpdateModuloDto,
-  ): Promise<Modulo> {
+  ): Promise<ModuloResponseDto> {
     return this.moduloService.update(id, updateModuloDto);
   }
 

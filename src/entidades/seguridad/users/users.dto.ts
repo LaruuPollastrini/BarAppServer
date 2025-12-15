@@ -1,20 +1,20 @@
 export class CreateUserDto {
-  Nombre: string;
-  Apellido: string;
-  Correo: string;
-  Contrasena: string;
-  Telefono: string;
-  EstaActivo?: boolean;
-  grupos_ids?: number[];
+  nombre: string;
+  apellido: string;
+  correo: string;
+  contrasena: string;
+  telefono: string;
+  estaActivo?: boolean;
+  gruposIds?: number[];
 }
 
 export class UpdateUserDto {
-  Nombre: string;
-  Apellido: string;
-  Correo: string;
-  Telefono: string;
-  EstaActivo?: boolean;
-  grupos_ids?: number[];
+  nombre: string;
+  apellido: string;
+  correo: string;
+  telefono: string;
+  estaActivo?: boolean;
+  gruposIds?: number[];
 }
 
 export class UserResponseDto {
@@ -30,4 +30,3 @@ export class UserResponseDto {
     estado: boolean;
   }>;
 }
-

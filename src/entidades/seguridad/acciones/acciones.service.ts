@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Accion } from './acciones.entity';
 import { Formulario } from '../formulario/formulario.entity';
 import { Grupo } from '../grupos/grupos.entity';
-import { CreateAccionDto, UpdateAccionDto } from './acciones.dto';
+import { CreateAccionDto, UpdateAccionDto, AccionResponseDto } from './acciones.dto';
 
 @Injectable()
 export class AccionesService {
@@ -17,13 +17,27 @@ export class AccionesService {
     private grupoRepository: Repository<Grupo>,
   ) {}
 
-  async findAll(): Promise<Accion[]> {
-    return this.accionRepository.find({
-      relations: ['formulario', 'grupos'],
-    });
+  private transformToResponseDto(accion: Accion): AccionResponseDto {
+    return {
+      id: accion.id,
+      nombre: accion.nombre,
+      formulario: accion.formulario
+        ? {
+            id: accion.formulario.id,
+            nombre: accion.formulario.nombre,
+          }
+        : undefined,
+    };
   }
 
-  async findOne(id: number): Promise<Accion> {
+  async findAll(): Promise<AccionResponseDto[]> {
+    const acciones = await this.accionRepository.find({
+      relations: ['formulario', 'grupos'],
+    });
+    return acciones.map((accion) => this.transformToResponseDto(accion));
+  }
+
+  async findOne(id: number): Promise<AccionResponseDto> {
     const accion = await this.accionRepository.findOne({
       where: { id },
       relations: ['formulario', 'grupos'],
@@ -33,17 +47,17 @@ export class AccionesService {
       throw new NotFoundException(`Accion with ID ${id} not found`);
     }
 
-    return accion;
+    return this.transformToResponseDto(accion);
   }
 
-  async create(createAccionDto: CreateAccionDto): Promise<Accion> {
+  async create(createAccionDto: CreateAccionDto): Promise<AccionResponseDto> {
     const formulario = await this.formularioRepository.findOne({
-      where: { id: createAccionDto.formulario_id },
+      where: { id: createAccionDto.formularioId },
     });
 
     if (!formulario) {
       throw new NotFoundException(
-        `Formulario with ID ${createAccionDto.formulario_id} not found`,
+        `Formulario with ID ${createAccionDto.formularioId} not found`,
       );
     }
 
@@ -55,16 +69,16 @@ export class AccionesService {
     return this.accionRepository.save(accion);
   }
 
-  async update(id: number, updateAccionDto: UpdateAccionDto): Promise<Accion> {
+  async update(id: number, updateAccionDto: UpdateAccionDto): Promise<AccionResponseDto> {
     await this.findOne(id); // Check if accion exists
 
     const formulario = await this.formularioRepository.findOne({
-      where: { id: updateAccionDto.formulario_id },
+      where: { id: updateAccionDto.formularioId },
     });
 
     if (!formulario) {
       throw new NotFoundException(
-        `Formulario with ID ${updateAccionDto.formulario_id} not found`,
+        `Formulario with ID ${updateAccionDto.formularioId} not found`,
       );
     }
 

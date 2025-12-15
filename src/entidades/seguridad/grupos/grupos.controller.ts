@@ -9,25 +9,24 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { GruposService } from './grupos.service';
-import { CreateGrupoDto, UpdateGrupoDto } from './grupos.dto';
-import { Grupo } from './grupos.entity';
+import { CreateGrupoDto, UpdateGrupoDto, GrupoResponseDto } from './grupos.dto';
 
 @Controller('grupos')
 export class GruposController {
   constructor(private readonly gruposService: GruposService) {}
 
   @Get()
-  async findAll(): Promise<Grupo[]> {
+  async findAll(): Promise<GrupoResponseDto[]> {
     return this.gruposService.findAll();
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number): Promise<Grupo> {
+  async findOne(@Param('id', ParseIntPipe) id: number): Promise<GrupoResponseDto> {
     return this.gruposService.findOne(id);
   }
 
   @Post()
-  async create(@Body() createGrupoDto: CreateGrupoDto): Promise<Grupo> {
+  async create(@Body() createGrupoDto: CreateGrupoDto): Promise<GrupoResponseDto> {
     return this.gruposService.create(createGrupoDto);
   }
 
@@ -35,7 +34,7 @@ export class GruposController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateGrupoDto: UpdateGrupoDto,
-  ): Promise<Grupo> {
+  ): Promise<GrupoResponseDto> {
     return this.gruposService.update(id, updateGrupoDto);
   }
 

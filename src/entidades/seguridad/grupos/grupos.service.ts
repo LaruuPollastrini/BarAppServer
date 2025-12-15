@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Grupo } from './grupos.entity';
 import { Accion } from '../acciones/acciones.entity';
-import { CreateGrupoDto, UpdateGrupoDto } from './grupos.dto';
+import { CreateGrupoDto, UpdateGrupoDto, GrupoResponseDto } from './grupos.dto';
 
 @Injectable()
 export class GruposService {
@@ -14,13 +14,32 @@ export class GruposService {
     private accionRepository: Repository<Accion>,
   ) {}
 
-  async findAll(): Promise<Grupo[]> {
-    return this.grupoRepository.find({
-      relations: ['acciones', 'acciones.formulario'],
-    });
+  private transformToResponseDto(grupo: Grupo): GrupoResponseDto {
+    return {
+      id: grupo.id,
+      nombre: grupo.nombre,
+      estado: grupo.Estado,
+      acciones: grupo.acciones?.map((accion) => ({
+        id: accion.id,
+        nombre: accion.nombre,
+        formulario: accion.formulario
+          ? {
+              id: accion.formulario.id,
+              nombre: accion.formulario.nombre,
+            }
+          : undefined,
+      })),
+    };
   }
 
-  async findOne(id: number): Promise<Grupo> {
+  async findAll(): Promise<GrupoResponseDto[]> {
+    const grupos = await this.grupoRepository.find({
+      relations: ['acciones', 'acciones.formulario'],
+    });
+    return grupos.map((grupo) => this.transformToResponseDto(grupo));
+  }
+
+  async findOne(id: number): Promise<GrupoResponseDto> {
     const grupo = await this.grupoRepository.findOne({
       where: { id },
       relations: ['acciones', 'acciones.formulario'],
@@ -30,20 +49,20 @@ export class GruposService {
       throw new NotFoundException(`Grupo with ID ${id} not found`);
     }
 
-    return grupo;
+    return this.transformToResponseDto(grupo);
   }
 
-  async create(createGrupoDto: CreateGrupoDto): Promise<Grupo> {
+  async create(createGrupoDto: CreateGrupoDto): Promise<GrupoResponseDto> {
     const grupo = this.grupoRepository.create({
       nombre: createGrupoDto.nombre,
-      Estado: createGrupoDto.Estado !== undefined ? createGrupoDto.Estado : true,
+      Estado: createGrupoDto.estado !== undefined ? createGrupoDto.estado : true,
     });
 
     const savedGrupo = await this.grupoRepository.save(grupo);
 
-    if (createGrupoDto.acciones_ids && createGrupoDto.acciones_ids.length > 0) {
+    if (createGrupoDto.accionesIds && createGrupoDto.accionesIds.length > 0) {
       const acciones = await this.accionRepository.findBy({
-        id: In(createGrupoDto.acciones_ids),
+        id: In(createGrupoDto.accionesIds),
       });
       savedGrupo.acciones = acciones;
       const updatedGrupo = await this.grupoRepository.save(savedGrupo);
@@ -53,7 +72,7 @@ export class GruposService {
     return this.findOne(savedGrupo.id);
   }
 
-  async update(id: number, updateGrupoDto: UpdateGrupoDto): Promise<Grupo> {
+  async update(id: number, updateGrupoDto: UpdateGrupoDto): Promise<GrupoResponseDto> {
     const grupo = await this.grupoRepository.findOne({
       where: { id },
       relations: ['acciones'],
@@ -64,13 +83,13 @@ export class GruposService {
     }
 
     grupo.nombre = updateGrupoDto.nombre;
-    if (updateGrupoDto.Estado !== undefined) {
-      grupo.Estado = updateGrupoDto.Estado;
+    if (updateGrupoDto.estado !== undefined) {
+      grupo.Estado = updateGrupoDto.estado;
     }
 
-    if (updateGrupoDto.acciones_ids !== undefined) {
+    if (updateGrupoDto.accionesIds !== undefined) {
       const acciones = await this.accionRepository.findBy({
-        id: In(updateGrupoDto.acciones_ids),
+        id: In(updateGrupoDto.accionesIds),
       });
       grupo.acciones = acciones;
     }
