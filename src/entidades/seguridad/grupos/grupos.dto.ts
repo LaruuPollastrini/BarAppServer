@@ -1,19 +1,19 @@
 export class CreateGrupoDto {
   nombre: string;
-  estado?: boolean;
+  estaActivo?: boolean;
   accionesIds?: number[];
 }
 
 export class UpdateGrupoDto {
   nombre: string;
-  estado?: boolean;
+  estaActivo?: boolean;
   accionesIds?: number[];
 }
 
 export class GrupoResponseDto {
   id: number;
   nombre: string;
-  estado: boolean;
+  estaActivo: boolean;
   acciones?: Array<{
     id: number;
     nombre: string;

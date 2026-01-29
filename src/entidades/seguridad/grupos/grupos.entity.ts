@@ -17,7 +17,7 @@ export class Grupo {
   nombre: string;
 
   @Column({ default: true })
-  Estado: boolean;
+  estaActivo: boolean;
 
   @ManyToMany(() => User, (usuario) => usuario.grupos)
   usuarios: User[];
@@ -45,7 +45,15 @@ export class Grupo {
   // ← Verifica si tiene una acción (recursivo)
   tieneAccion(nombreAccion: string): boolean {
     // Busca en acciones directas
-    const tieneDirecta = this.acciones?.some((a) => a.nombre === nombreAccion);
+    // nombreAccion puede venir como "Formulario.Acción" (ej: "Productos.Agregar Producto")
+    // o solo "Acción" (ej: "Agregar Producto")
+    const tieneDirecta = this.acciones?.some((a) => {
+      const accionCompleta = `${a.formulario?.nombre || ''}.${a.nombre}`;
+      // Comparar tanto el formato completo como solo el nombre
+      return accionCompleta.toLowerCase() === nombreAccion.toLowerCase() ||
+             a.nombre.toLowerCase() === nombreAccion.toLowerCase() ||
+             nombreAccion.toLowerCase().endsWith(`.${a.nombre.toLowerCase()}`);
+    });
     if (tieneDirecta) return true;
 
     // Busca en grupos padres (recursivo)
@@ -57,9 +65,26 @@ export class Grupo {
   obtenerAcciones(): string[] {
     const acciones = new Set<string>();
 
+    // Map new formulario names to old names (for frontend compatibility)
+    const formularioNameMapping: Record<string, string> = {
+      'Gestionar Productos': 'Productos',
+      'Gestionar Categorias': 'Categorias',
+      'Gestionar Mesas': 'Mesas',
+      'Gestionar Pedidos': 'Pedidos',
+      'Visualizar Reportes': 'Reportes',
+      'Gestionar Usuarios': 'Usuarios',
+      'Gestionar Grupos': 'Grupos',
+      'Gestionar Modulos': 'Modulos',
+      'Gestionar Formularios': 'Formularios',
+      'Ver Acciones': 'Acciones',
+    };
+
     // Acciones directas
     this.acciones?.forEach((a) => {
-      acciones.add(`${a.formulario?.nombre || 'sin-form'}.${a.nombre}`);
+      const formularioNombre = a.formulario?.nombre || 'sin-form';
+      // Map to old name if exists, otherwise use current name
+      const mappedFormularioNombre = formularioNameMapping[formularioNombre] || formularioNombre;
+      acciones.add(`${mappedFormularioNombre}.${a.nombre}`);
     });
 
     // Acciones de grupos padres (recursivo)

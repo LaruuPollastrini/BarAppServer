@@ -6,7 +6,11 @@ import { PedidoModule } from './entidades/realizar-pedidos/pedidos/pedido.module
 import { TicketModule } from './entidades/realizar-pedidos/ticket/ticket.module';
 import { ProductoModule } from './entidades/realizar-pedidos/productos/productos.module';
 import { MesaModule } from './entidades/realizar-pedidos/mesa/mesa.module';
+import { SessionModule } from './entidades/realizar-pedidos/session/session.module';
+import { CategoriaModule } from './entidades/realizar-pedidos/categoria/categoria.module';
 import { SeguridadModule } from './entidades/seguridad/seguridad.module';
+import { AuthModule } from './entidades/seguridad/auth/auth.module';
+import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
 
 @Module({
   imports: [
@@ -22,10 +26,14 @@ import { SeguridadModule } from './entidades/seguridad/seguridad.module';
       logger: 'debug',
     }),
     SeguridadModule,
+    AccionesModule,
     PedidoModule,
     TicketModule,
     ProductoModule,
     MesaModule,
+    SessionModule,
+    CategoriaModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

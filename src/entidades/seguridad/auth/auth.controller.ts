@@ -82,4 +82,36 @@ export class AuthController {
     );
     return { puedeAcceder };
   }
+
+  @Get('acciones-accesibles')
+  @UseGuards(AuthGuard('jwt'))
+  async getAccionesAccesibles(
+    @Request() req: Request & { user: { id: number } },
+  ) {
+    return this.seguridadService.obtenerAccionesAccesibles(req.user.id);
+  }
+
+  @Get('debug-permissions')
+  @UseGuards(AuthGuard('jwt'))
+  async debugPermissions(
+    @Request() req: Request & { user: { id: number } },
+  ) {
+    return this.seguridadService.debugUserPermissions(req.user.id);
+  }
+
+  @Get('user-grupos')
+  @UseGuards(AuthGuard('jwt'))
+  async getUserGrupos(
+    @Request() req: Request & { user: { id: number } },
+  ) {
+    const usuario = await this.seguridadService.obtenerUsuario(req.user.id);
+    if (!usuario || !usuario.grupos) return [];
+    
+    return usuario.grupos.map((grupo) => ({
+      id: grupo.id,
+      nombre: grupo.nombre,
+      estaActivo: grupo.estaActivo,
+      accionesCount: grupo.acciones?.length || 0,
+    }));
+  }
 }

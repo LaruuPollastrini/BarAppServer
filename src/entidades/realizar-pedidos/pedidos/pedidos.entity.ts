@@ -1,7 +1,4 @@
-import { Formulario } from 'src/entidades/seguridad/formulario/formulario.entity';
-import { Grupo } from 'src/entidades/seguridad/grupos/grupos.entity';
 import {
-  ManyToMany,
   PrimaryGeneratedColumn,
   Entity,
   Column,
@@ -26,15 +23,21 @@ export class Pedidos {
   @Column()
   estado: string;
 
-  @ManyToOne(() => User, (user) => user.id)
+  /**
+   * Verification code used when the order was placed
+   * WHY: Allows filtering orders by client session (mesa + codigoVerificacion)
+   */
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  codigoVerificacion: string | null;
+
+  @ManyToOne(() => User, (user) => user.id, { nullable: true })
   @JoinColumn({ name: 'clienteId' })
-  user: User;
+  user: User | null;
 
-  @OneToMany(() => DetallesPedido, (dp) => dp.pedido, {cascade: true})
+  @OneToMany(() => DetallesPedido, (dp) => dp.pedido, { cascade: true })
   detallespedido: DetallesPedido[];
-  
 
-  @OneToOne(() => Mesa, (mesa) => mesa.idmesa)
+  @ManyToOne(() => Mesa, (mesa) => mesa.idmesa)
   @JoinColumn({ name: 'mesaId' })
   mesa: Mesa;
 
