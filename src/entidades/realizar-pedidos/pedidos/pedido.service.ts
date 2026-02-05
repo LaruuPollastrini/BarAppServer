@@ -330,7 +330,9 @@ export class PedidoService {
     // Filter out deleted products and by categoria if provided
     const filteredDetalles = detalles
       .filter((d) => !d.producto.estaEliminado)
-      .filter((d) => (categoria ? d.producto.categoria === categoria : true));
+      .filter((d) =>
+        categoria ? d.producto.categoria?.nombre === categoria : true,
+      );
 
     // Aggregate by producto
     const productStats = new Map<
@@ -356,7 +358,7 @@ export class PedidoService {
         productStats.set(productoId, {
           productoId: detalle.producto.id,
           nombre: detalle.producto.nombre,
-          categoria: detalle.producto.categoria,
+          categoria: detalle.producto.categoria?.nombre ?? '',
           totalCantidad: detalle.cantidad,
           totalPedidos: new Set([detalle.pedido.idpedido]),
           precioUnitario: detalle.precioUnitario,
@@ -401,7 +403,9 @@ export class PedidoService {
     // Filter out deleted products and by categoria if provided
     const filteredDetalles = detalles
       .filter((d) => !d.producto.estaEliminado)
-      .filter((d) => (categoria ? d.producto.categoria === categoria : true));
+      .filter((d) =>
+        categoria ? d.producto.categoria?.nombre === categoria : true,
+      );
 
     // Aggregate by producto
     const productStats = new Map<
@@ -427,7 +431,7 @@ export class PedidoService {
         productStats.set(productoId, {
           productoId: detalle.producto.id,
           nombre: detalle.producto.nombre,
-          categoria: detalle.producto.categoria,
+          categoria: detalle.producto.categoria?.nombre ?? '',
           totalCantidad: detalle.cantidad,
           totalPedidos: new Set([detalle.pedido.idpedido]),
           precioUnitario: detalle.precioUnitario,
@@ -470,7 +474,7 @@ export class PedidoService {
 
     // Filter by categoria if provided
     const filteredProductos = categoria
-      ? allProductos.filter((p) => p.categoria === categoria)
+      ? allProductos.filter((p) => p.categoria?.nombre === categoria)
       : allProductos;
 
     // Get all productos that have been ordered (from detalles)
@@ -490,7 +494,7 @@ export class PedidoService {
       .map((producto) => ({
         productoId: producto.id,
         nombre: producto.nombre,
-        categoria: producto.categoria,
+        categoria: producto.categoria?.nombre ?? '',
         precio: producto.precio,
         descripcion: producto.descripcion,
       }));

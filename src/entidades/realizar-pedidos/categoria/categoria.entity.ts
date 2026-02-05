@@ -1,4 +1,5 @@
-import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm';
+import { PrimaryGeneratedColumn, Entity, Column, OneToMany } from 'typeorm';
+import { Producto } from '../productos/productos.entity';
 
 @Entity()
 export class Categoria {
@@ -13,4 +14,7 @@ export class Categoria {
 
   @Column({ default: false })
   estaEliminado: boolean;
+
+  @OneToMany(() => Producto, (producto) => producto.categoria)
+  productos: Producto[];
 }

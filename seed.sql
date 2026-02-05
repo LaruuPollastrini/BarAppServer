@@ -7,6 +7,11 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- Eliminar tablas (orden: tablas de enlace primero, luego entidades con FKs)
+-- Para reset completo de categoria/producto, descomenta:
+-- DROP TABLE IF EXISTS `detallespedido`;
+-- DROP TABLE IF EXISTS `detalles_pedido`;
+-- DROP TABLE IF EXISTS `producto`;
+-- DROP TABLE IF EXISTS `categoria`;
 DROP TABLE IF EXISTS `usuario_grupo`;
 DROP TABLE IF EXISTS `grupo_accion`;
 DROP TABLE IF EXISTS `grupo_formulario`;
@@ -89,6 +94,107 @@ CREATE TABLE IF NOT EXISTS `usuario_grupo` (
 
 -- Si tu tabla de usuarios se llama 'user' y quieres FK hacia ella, descomenta y ajusta:
 -- ALTER TABLE `usuario_grupo` ADD CONSTRAINT `FK_usuario_grupo_user` FOREIGN KEY (`usuario_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
+
+-- -----------------------------------------------------------------------------
+-- Categoria y Producto (realizar-pedidos)
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `categoria` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL,
+  `descripcion` varchar(500) DEFAULT NULL,
+  `estaEliminado` tinyint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UQ_categoria_nombre` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS alter_categoria_add_columns//
+CREATE PROCEDURE alter_categoria_add_columns()
+BEGIN
+  IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'categoria' AND COLUMN_NAME = 'descripcion') = 0 THEN
+    ALTER TABLE `categoria` ADD COLUMN `descripcion` varchar(500) DEFAULT NULL;
+  END IF;
+  IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'categoria' AND COLUMN_NAME = 'estaEliminado') = 0 THEN
+    ALTER TABLE `categoria` ADD COLUMN `estaEliminado` tinyint NOT NULL DEFAULT 0;
+  END IF;
+END//
+DELIMITER ;
+CALL alter_categoria_add_columns();
+DROP PROCEDURE IF EXISTS alter_categoria_add_columns;
+
+CREATE TABLE IF NOT EXISTS `producto` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(255) NOT NULL,
+  `descripcion` varchar(255) NOT NULL,
+  `precio` decimal(10,2) NOT NULL,
+  `categoriaId` int NULL DEFAULT NULL,
+  `estaEliminado` tinyint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `FK_producto_categoria` (`categoriaId`),
+  CONSTRAINT `FK_producto_categoria` FOREIGN KEY (`categoriaId`) REFERENCES `categoria` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DELIMITER //
+DROP PROCEDURE IF EXISTS alter_producto_add_columns//
+CREATE PROCEDURE alter_producto_add_columns()
+BEGIN
+  DECLARE fk_name VARCHAR(255) DEFAULT NULL;
+
+  IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND COLUMN_NAME = 'categoria_id') > 0 THEN
+    IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND COLUMN_NAME = 'categoriaId') = 0 THEN
+      ALTER TABLE `producto` ADD COLUMN `categoriaId` int NULL DEFAULT NULL;
+      UPDATE `producto` SET `categoriaId` = `categoria_id` WHERE `categoria_id` IS NOT NULL;
+    END IF;
+    SELECT CONSTRAINT_NAME INTO fk_name FROM information_schema.KEY_COLUMN_USAGE
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND COLUMN_NAME = 'categoria_id' AND REFERENCED_TABLE_NAME = 'categoria' LIMIT 1;
+    IF fk_name IS NOT NULL THEN
+      SET @sql = CONCAT('ALTER TABLE `producto` DROP FOREIGN KEY `', fk_name, '`');
+      PREPARE stmt FROM @sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+    END IF;
+    ALTER TABLE `producto` DROP COLUMN `categoria_id`;
+  END IF;
+
+  IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND COLUMN_NAME = 'categoriaId') = 0 THEN
+    ALTER TABLE `producto` ADD COLUMN `categoriaId` int NULL DEFAULT NULL;
+  END IF;
+  IF (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND CONSTRAINT_NAME = 'FK_producto_categoria') = 0 THEN
+    ALTER TABLE `producto` ADD CONSTRAINT `FK_producto_categoria` FOREIGN KEY (`categoriaId`) REFERENCES `categoria` (`id`);
+  END IF;
+  IF (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'producto' AND COLUMN_NAME = 'estaEliminado') = 0 THEN
+    ALTER TABLE `producto` ADD COLUMN `estaEliminado` tinyint NOT NULL DEFAULT 0;
+  END IF;
+END//
+DELIMITER ;
+CALL alter_producto_add_columns();
+DROP PROCEDURE IF EXISTS alter_producto_add_columns;
+
+INSERT INTO `categoria` (`id`, `nombre`, `descripcion`, `estaEliminado`) VALUES
+(1, 'Bebidas', 'Bebidas frías y calientes', 0),
+(2, 'Comidas', 'Platos principales y acompañamientos', 0),
+(3, 'Postres', 'Dulces y postres', 0),
+(4, 'Snacks', 'Aperitivos y snacks', 0)
+ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`), `descripcion` = VALUES(`descripcion`), `estaEliminado` = VALUES(`estaEliminado`);
+
+INSERT INTO `producto` (`id`, `nombre`, `descripcion`, `precio`, `categoriaId`, `estaEliminado`) VALUES
+(1, 'Café Americano', 'Café negro americano', 2.50, 1, 0),
+(2, 'Café con Leche', 'Café con leche caliente', 3.00, 1, 0),
+(3, 'Coca Cola', 'Gaseosa 500ml', 2.00, 1, 0),
+(4, 'Agua Mineral', 'Agua mineral 500ml', 1.50, 1, 0),
+(5, 'Cerveza', 'Cerveza rubia 330ml', 4.00, 1, 0),
+(6, 'Milanesa Napolitana', 'Milanesa con jamón, queso y salsa', 12.00, 2, 0),
+(7, 'Pizza Margherita', 'Pizza con tomate y mozzarella', 10.00, 2, 0),
+(8, 'Hamburguesa Clásica', 'Hamburguesa con papas fritas', 9.50, 2, 0),
+(9, 'Ensalada César', 'Lechuga, pollo, crutones y aderezo', 8.00, 2, 0),
+(10, 'Flan con Dulce de Leche', 'Flan casero con dulce de leche', 5.00, 3, 0),
+(11, 'Brownie', 'Brownie de chocolate con nueces', 4.50, 3, 0),
+(12, 'Helado 2 Bochas', 'Helado artesanal 2 bochas', 4.00, 3, 0),
+(13, 'Papas Fritas', 'Porción de papas fritas', 3.50, 4, 0),
+(14, 'Nachos con Queso', 'Nachos con salsa de queso', 5.50, 4, 0),
+(15, 'Empanadas x3', 'Tres empanadas de carne', 6.00, 4, 0)
+ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`), `descripcion` = VALUES(`descripcion`), `precio` = VALUES(`precio`), `categoriaId` = VALUES(`categoriaId`), `estaEliminado` = VALUES(`estaEliminado`);
 
 -- -----------------------------------------------------------------------------
 -- Insertar módulos (ids como en tu especificación)

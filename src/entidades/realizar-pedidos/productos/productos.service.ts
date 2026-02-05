@@ -2,25 +2,58 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Producto } from './productos.entity';
+import { Categoria } from '../categoria/categoria.entity';
+
+export interface ProductoResponse {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  categoriaId: number | null;
+  categoriaName: string;
+  estaEliminado: boolean;
+}
 
 @Injectable()
 export class ProductosService {
   constructor(
     @InjectRepository(Producto)
     private productosRepository: Repository<Producto>,
+    @InjectRepository(Categoria)
+    private categoriaRepository: Repository<Categoria>,
   ) {}
 
-  async findAllAvailable(): Promise<Producto[]> {
-    const lista = await this.productosRepository.find();
-    return lista.filter((producto) => !producto.estaEliminado);
+  private toResponse(p: Producto): ProductoResponse {
+    return {
+      id: p.id,
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      precio: p.precio,
+      categoriaId: p.categoria?.id ?? null,
+      categoriaName: p.categoria?.nombre ?? '',
+      estaEliminado: p.estaEliminado,
+    };
   }
 
-  findOne(id: number): Promise<Producto | null> {
-    return this.productosRepository.findOneBy({ id: id });
+  async findAllAvailable(): Promise<ProductoResponse[]> {
+    const lista = await this.productosRepository.find({
+      relations: ['categoria'],
+    });
+    return lista
+      .filter((p) => !p.estaEliminado)
+      .map((p) => this.toResponse(p));
+  }
+
+  async findOne(id: number): Promise<ProductoResponse | null> {
+    const p = await this.productosRepository.findOne({
+      where: { id },
+      relations: ['categoria'],
+    });
+    return p ? this.toResponse(p) : null;
   }
 
   async remove(id: number): Promise<void> {
-    const producto = await this.productosRepository.findOneBy({ id: id });
+    const producto = await this.productosRepository.findOneBy({ id });
     if (!producto) {
       throw new Error(`Producto con ID ${id} no encontrado`);
     }
@@ -31,7 +64,7 @@ export class ProductosService {
     nombre: string,
     descripcion: string,
     precio: number,
-    categoria: string,
+    categoriaId?: number | null,
   ): Promise<void> {
     if (!nombre || nombre.trim() === '') {
       throw new Error('El nombre del producto es obligatorio');
@@ -39,18 +72,25 @@ export class ProductosService {
     if (precio <= 0) {
       throw new Error('El precio debe ser mayor a cero');
     }
-    if (!categoria || categoria.trim() === '') {
-      throw new Error('La categoría del producto es obligatoria');
+
+    let categoria: Categoria | null = null;
+    if (categoriaId) {
+      categoria = await this.categoriaRepository.findOneBy({
+        id: categoriaId,
+        estaEliminado: false,
+      });
+      if (!categoria) {
+        throw new Error('Categoría no encontrada o eliminada');
+      }
     }
 
-    // Check if product with same name already exists (including deleted ones that could be reactivated)
-    const productoExistente = await this.productosRepository.findOneBy({
-      nombre: nombre.trim(),
+    const productoExistente = await this.productosRepository.findOne({
+      where: { nombre: nombre.trim() },
+      relations: ['categoria'],
     });
 
     if (productoExistente) {
       if (productoExistente.estaEliminado) {
-        // Reactivate deleted product with new data
         productoExistente.estaEliminado = false;
         productoExistente.descripcion = descripcion;
         productoExistente.precio = precio;
@@ -72,30 +112,51 @@ export class ProductosService {
     await this.productosRepository.save(nuevoProducto);
   }
 
-  async modificar(producto: Producto): Promise<void> {
-    const productoExistente = await this.productosRepository.findOneBy({
-      id: producto.id,
+  async modificar(
+    id: number,
+    nombre: string,
+    descripcion: string,
+    precio: number,
+    categoriaId?: number | null,
+  ): Promise<void> {
+    const productoExistente = await this.productosRepository.findOne({
+      where: { id },
+      relations: ['categoria'],
     });
     if (!productoExistente) {
-      throw new Error(`Producto con ID ${producto.id} no encontrado`);
+      throw new Error(`Producto con ID ${id} no encontrado`);
     }
-    if (!producto.nombre || producto.nombre.trim() === '') {
+    if (!nombre || nombre.trim() === '') {
       throw new Error('El nombre del producto es obligatorio');
     }
-    if (producto.precio <= 0) {
+    if (precio <= 0) {
       throw new Error('El precio debe ser mayor a cero');
     }
 
-    // Check if another product with the same name exists
+    let categoria: Categoria | null = null;
+    if (categoriaId) {
+      categoria = await this.categoriaRepository.findOneBy({
+        id: categoriaId,
+        estaEliminado: false,
+      });
+      if (!categoria) {
+        throw new Error('Categoría no encontrada o eliminada');
+      }
+    }
+
     const duplicado = await this.productosRepository.findOneBy({
-      nombre: producto.nombre.trim(),
+      nombre: nombre.trim(),
     });
-    if (duplicado && duplicado.id !== producto.id && !duplicado.estaEliminado) {
+    if (duplicado && duplicado.id !== id && !duplicado.estaEliminado) {
       throw new Error(
-        `Ya existe otro producto con el nombre "${producto.nombre}". Por favor, usa un nombre diferente.`,
+        `Ya existe otro producto con el nombre "${nombre}". Por favor, usa un nombre diferente.`,
       );
     }
 
-    await this.productosRepository.update({ id: producto.id }, producto);
+    productoExistente.nombre = nombre.trim();
+    productoExistente.descripcion = descripcion;
+    productoExistente.precio = precio;
+    productoExistente.categoria = categoria;
+    await this.productosRepository.save(productoExistente);
   }
 }

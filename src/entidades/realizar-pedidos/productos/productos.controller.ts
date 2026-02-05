@@ -4,30 +4,31 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Producto } from './productos.entity';
 import { ProductosService } from './productos.service';
 
 @Controller('productos')
 export class ProductoController {
   constructor(private readonly productoService: ProductosService) {}
+
   @Post('/')
   async agregarProducto(
     @Body('nombre') nombre: string,
     @Body('descripcion') descripcion: string,
     @Body('precio') precio: number,
-    @Body('categoria') categoria: string,
+    @Body('categoriaId') categoriaId?: number | null,
   ): Promise<string> {
     try {
       await this.productoService.agregar(
         nombre,
         descripcion,
         precio,
-        categoria,
+        categoriaId,
       );
       return `El producto ha sido agregado correctamente`;
     } catch (error) {
@@ -39,10 +40,22 @@ export class ProductoController {
   }
 
   @Put('/')
-  async modificarPedido(@Body() producto: Producto): Promise<string> {
+  async modificarProducto(
+    @Body('id') id: number,
+    @Body('nombre') nombre: string,
+    @Body('descripcion') descripcion: string,
+    @Body('precio') precio: number,
+    @Body('categoriaId') categoriaId?: number | null,
+  ): Promise<string> {
     try {
-      await this.productoService.modificar(producto);
-      return `Producto con ID ${producto.id} actualizado correctamente`;
+      await this.productoService.modificar(
+        id,
+        nombre,
+        descripcion,
+        precio,
+        categoriaId,
+      );
+      return `Producto con ID ${id} actualizado correctamente`;
     } catch (error) {
       throw new HttpException(
         error.message || 'Error al modificar el producto',
@@ -52,7 +65,7 @@ export class ProductoController {
   }
 
   @Delete('/:id')
-  async eliminarProducto(@Param('id') id: number): Promise<string> {
+  async eliminarProducto(@Param('id', ParseIntPipe) id: number): Promise<string> {
     try {
       await this.productoService.remove(id);
       return `Producto con ID ${id} eliminado correctamente`;
@@ -63,15 +76,18 @@ export class ProductoController {
       );
     }
   }
+
   @Get('/')
-  async listarProductosDisponibles(): Promise<string> {
-    const productos = await this.productoService.findAllAvailable();
-    return JSON.stringify(productos);
+  async listarProductosDisponibles() {
+    return this.productoService.findAllAvailable();
   }
 
   @Get('/:id')
-  async listarProductosID(@Param('id') id: number): Promise<string> {
-    const productos = await this.productoService.findOne(id);
-    return JSON.stringify(productos);
+  async listarProductosID(@Param('id', ParseIntPipe) id: number) {
+    const producto = await this.productoService.findOne(id);
+    if (!producto) {
+      throw new HttpException('Producto no encontrado', HttpStatus.NOT_FOUND);
+    }
+    return producto;
   }
 }
