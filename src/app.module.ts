@@ -22,7 +22,9 @@ import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
       password: 'password',
       database: 'bar_app',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      // synchronize: false evita que TypeORM intente DROP INDEX en FKs (error ER_DROP_INDEX_FK en MySQL).
+      // Gestiona el esquema con seed.sql o migraciones.
+      synchronize: false,
       logger: 'debug',
     }),
     SeguridadModule,

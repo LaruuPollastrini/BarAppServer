@@ -186,6 +186,8 @@ export class PedidosController {
    * WHY: Provides data for reports page
    */
   @Get('/reportes/productos-mas-pedidos')
+  @UseGuards(AuthGuard('jwt'), AccionesGuard)
+  @RequiereAcciones('Reportes.Ver Productos Mas Pedidos')
   async getMostOrderedProducts(@Query('categoria') categoria?: string): Promise<
     Array<{
       productoId: number;
@@ -205,6 +207,8 @@ export class PedidosController {
    * WHY: Provides income data for reports with better performance
    */
   @Get('/reportes/ingresos')
+  @UseGuards(AuthGuard('jwt'), AccionesGuard)
+  @RequiereAcciones('Reportes.Reporte de Ingresos')
   async getIncomeReport(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
@@ -228,6 +232,8 @@ export class PedidosController {
    * WHY: Provides average ticket value for reports with better performance
    */
   @Get('/reportes/ticket-promedio')
+  @UseGuards(AuthGuard('jwt'), AccionesGuard)
+  @RequiereAcciones('Reportes.Ticket Promedio')
   async getAverageTicket(
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
@@ -254,6 +260,8 @@ export class PedidosController {
    * WHY: Provides data for reports showing least popular products
    */
   @Get('/reportes/productos-menos-pedidos')
+  @UseGuards(AuthGuard('jwt'), AccionesGuard)
+  @RequiereAcciones('Reportes.Ver Productos Menos Pedidos')
   async getLeastOrderedProducts(
     @Query('categoria') categoria?: string,
   ): Promise<
@@ -275,6 +283,8 @@ export class PedidosController {
    * WHY: Provides data for reports showing products that need promotion
    */
   @Get('/reportes/productos-nunca-pedidos')
+  @UseGuards(AuthGuard('jwt'), AccionesGuard)
+  @RequiereAcciones('Reportes.Ver Productos Nunca Pedidos')
   async getNeverOrderedProducts(
     @Query('categoria') categoria?: string,
   ): Promise<

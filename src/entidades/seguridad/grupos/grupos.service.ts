@@ -6,14 +6,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Grupo } from './grupos.entity';
-import { Accion } from '../acciones/acciones.entity';
-import { AccionesService } from '../acciones/acciones.service';
+import { Formulario } from '../formulario/formulario.entity';
 import { CreateGrupoDto, UpdateGrupoDto, GrupoResponseDto } from './grupos.dto';
 
 /** Nombre normalizado del grupo Admin (no se puede modificar/eliminar; solo lectura para quienes pertenecen) */
 const NOMBRE_GRUPO_ADMIN = 'admin';
 
-/** Formularios del módulo Seguridad: el grupo Admin no puede perder estas acciones */
+/** Formularios del módulo Seguridad: el grupo Admin no puede perder estos formularios */
 const FORMULARIOS_SEGURIDAD = [
   'Gestionar Modulos',
   'Gestionar Grupos',
@@ -41,9 +40,8 @@ export class GruposService {
   constructor(
     @InjectRepository(Grupo)
     private grupoRepository: Repository<Grupo>,
-    @InjectRepository(Accion)
-    private accionRepository: Repository<Accion>,
-    private accionesService: AccionesService,
+    @InjectRepository(Formulario)
+    private formularioRepository: Repository<Formulario>,
   ) {}
 
   private transformToResponseDto(grupo: Grupo): GrupoResponseDto {
@@ -51,25 +49,18 @@ export class GruposService {
       id: grupo.id,
       nombre: grupo.nombre,
       estaActivo: grupo.estaActivo,
-      acciones: grupo.acciones?.map((accion) => ({
-        id: accion.id,
-        nombre: accion.nombre,
-        formulario: accion.formulario
-          ? {
-              id: accion.formulario.id,
-              nombre: accion.formulario.nombre,
-            }
-          : undefined,
+      formularios: grupo.formularios?.map((f) => ({
+        id: f.id,
+        nombre: f.nombre,
       })),
     };
   }
 
   async findAll(user: RequestUser): Promise<GrupoResponseDto[]> {
     const grupos = await this.grupoRepository.find({
-      relations: ['acciones', 'acciones.formulario'],
+      relations: ['formularios'],
     });
     const dtos = grupos.map((grupo) => this.transformToResponseDto(grupo));
-    // Los usuarios que no pertenecen al grupo Admin no pueden ver el grupo Admin
     if (!isUserInAdminGroup(user)) {
       return dtos.filter(
         (g) => g.nombre?.trim().toLowerCase() !== NOMBRE_GRUPO_ADMIN,
@@ -81,14 +72,13 @@ export class GruposService {
   async findOne(id: number, user?: RequestUser): Promise<GrupoResponseDto> {
     const grupo = await this.grupoRepository.findOne({
       where: { id },
-      relations: ['acciones', 'acciones.formulario'],
+      relations: ['formularios'],
     });
 
     if (!grupo) {
       throw new NotFoundException(`Grupo with ID ${id} not found`);
     }
 
-    // Si es el grupo Admin y el usuario no pertenece a Admin, no puede verlo (user undefined = llamada interna, permitir)
     if (
       user !== undefined &&
       isAdminGroup(grupo) &&
@@ -111,12 +101,14 @@ export class GruposService {
 
     const savedGrupo = await this.grupoRepository.save(grupo);
 
-    if (createGrupoDto.accionesIds && createGrupoDto.accionesIds.length > 0) {
-      // Ensure all predefined actions exist in DB before assigning
-      const acciones = await this.ensurePredefinedActionsExist(
-        createGrupoDto.accionesIds,
+    if (
+      createGrupoDto.formulariosIds &&
+      createGrupoDto.formulariosIds.length > 0
+    ) {
+      const formularios = await this.ensureFormulariosExist(
+        createGrupoDto.formulariosIds,
       );
-      savedGrupo.acciones = acciones;
+      savedGrupo.formularios = formularios;
       const updatedGrupo = await this.grupoRepository.save(savedGrupo);
       return this.findOne(updatedGrupo.id);
     }
@@ -131,14 +123,13 @@ export class GruposService {
   ): Promise<GrupoResponseDto> {
     const grupo = await this.grupoRepository.findOne({
       where: { id },
-      relations: ['acciones', 'acciones.formulario'],
+      relations: ['formularios'],
     });
 
     if (!grupo) {
       throw new NotFoundException(`Grupo with ID ${id} not found`);
     }
 
-    // Nadie puede modificar el grupo Admin
     if (isAdminGroup(grupo)) {
       throw new ForbiddenException('No se puede modificar el grupo Admin.');
     }
@@ -148,24 +139,20 @@ export class GruposService {
       grupo.estaActivo = updateGrupoDto.estaActivo;
     }
 
-    if (updateGrupoDto.accionesIds !== undefined) {
-      let finalAccionesIds = [...updateGrupoDto.accionesIds];
+    if (updateGrupoDto.formulariosIds !== undefined) {
+      let finalFormulariosIds = [...updateGrupoDto.formulariosIds];
       const isAdmin = grupo.nombre?.trim().toLowerCase() === 'admin';
       if (isAdmin) {
-        const securityActionIds = (grupo.acciones || [])
-          .filter(
-            (a) =>
-              a.formulario?.nombre &&
-              FORMULARIOS_SEGURIDAD.includes(a.formulario.nombre),
-          )
-          .map((a) => a.id);
-        finalAccionesIds = [
-          ...new Set([...finalAccionesIds, ...securityActionIds]),
+        const securityFormularioIds = (grupo.formularios || [])
+          .filter((f) => FORMULARIOS_SEGURIDAD.includes(f.nombre))
+          .map((f) => f.id);
+        finalFormulariosIds = [
+          ...new Set([...finalFormulariosIds, ...securityFormularioIds]),
         ];
       }
-      const acciones =
-        await this.ensurePredefinedActionsExist(finalAccionesIds);
-      grupo.acciones = acciones;
+      const formularios =
+        await this.ensureFormulariosExist(finalFormulariosIds);
+      grupo.formularios = formularios;
     }
 
     await this.grupoRepository.save(grupo);
@@ -175,12 +162,11 @@ export class GruposService {
   async remove(id: number): Promise<void> {
     const grupo = await this.grupoRepository.findOne({
       where: { id },
-      relations: ['acciones', 'acciones.formulario'],
+      relations: ['formularios'],
     });
     if (!grupo) {
       throw new NotFoundException(`Grupo with ID ${id} not found`);
     }
-    // Nadie puede eliminar el grupo Admin
     if (isAdminGroup(grupo)) {
       throw new ForbiddenException('No se puede eliminar el grupo Admin.');
     }
@@ -188,82 +174,32 @@ export class GruposService {
   }
 
   /**
-   * Assign all actions from database to a grupo by name
-   * This gives the grupo full access to all system actions
-   * Actions are now seeded via SQL, so we get them from DB
+   * Asigna todos los formularios al grupo por nombre (ej. Admin = todos los privilegios).
    */
-  async assignAllPredefinedActionsToGrupo(
+  async assignAllFormulariosToGrupo(
     grupoNombre: string,
   ): Promise<GrupoResponseDto> {
-    // Find the grupo by name
     const grupo = await this.grupoRepository.findOne({
       where: { nombre: grupoNombre },
-      relations: ['acciones'],
+      relations: ['formularios'],
     });
 
     if (!grupo) {
       throw new NotFoundException(`Grupo "${grupoNombre}" no encontrado`);
     }
 
-    // Get all actions from database (seeded via SQL)
-    const allAcciones = await this.accionRepository.find({
-      relations: ['formulario'],
-    });
-
-    // Assign all actions to the grupo
-    grupo.acciones = allAcciones;
+    const allFormularios = await this.formularioRepository.find();
+    grupo.formularios = allFormularios;
     await this.grupoRepository.save(grupo);
 
     return this.findOne(grupo.id);
   }
 
-  /**
-   * Map new formulario names to old names (for predefined actions lookup)
-   */
-  private mapFormularioNameToOld(formularioNombre: string): string {
-    const nameMapping: Record<string, string> = {
-      'Gestionar Productos': 'Productos',
-      'Gestionar Categorias': 'Categorias',
-      'Gestionar Mesas': 'Mesas',
-      'Gestionar Pedidos': 'Pedidos',
-      'Visualizar Reportes': 'Reportes',
-      'Gestionar Usuarios': 'Usuarios',
-      'Gestionar Grupos': 'Grupos',
-      'Gestionar Modulos': 'Modulos',
-      'Gestionar Formularios': 'Formularios',
-      'Ver Acciones': 'Acciones',
-    };
-    return nameMapping[formularioNombre] || formularioNombre;
-  }
-
-  /**
-   * Ensure actions exist in DB before assigning to groups
-   * Now accepts any action from DB (actions are seeded via SQL)
-   */
-  private async ensurePredefinedActionsExist(
-    accionesIds: number[],
-  ): Promise<Accion[]> {
-    // Get all actions by IDs
-    const acciones = await this.accionRepository.find({
-      where: { id: In(accionesIds) },
-      relations: ['formulario'],
+  private async ensureFormulariosExist(
+    formulariosIds: number[],
+  ): Promise<Formulario[]> {
+    return this.formularioRepository.find({
+      where: { id: In(formulariosIds) },
     });
-
-    // Return all valid actions (those with formulario)
-    // Actions are now managed via SQL seed, so we accept any action that exists in DB
-    const validAcciones: Accion[] = [];
-    for (const accion of acciones) {
-      if (!accion.formulario) {
-        console.warn(
-          `Skipping action ${accion.id} (${accion.nombre}) - no formulario`,
-        );
-        continue; // Skip actions without formulario
-      }
-
-      // Action exists and has formulario, it's valid
-      validAcciones.push(accion);
-    }
-
-    return validAcciones;
   }
 }

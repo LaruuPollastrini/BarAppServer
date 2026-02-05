@@ -93,25 +93,21 @@ export class AuthController {
 
   @Get('debug-permissions')
   @UseGuards(AuthGuard('jwt'))
-  async debugPermissions(
-    @Request() req: Request & { user: { id: number } },
-  ) {
+  async debugPermissions(@Request() req: Request & { user: { id: number } }) {
     return this.seguridadService.debugUserPermissions(req.user.id);
   }
 
   @Get('user-grupos')
   @UseGuards(AuthGuard('jwt'))
-  async getUserGrupos(
-    @Request() req: Request & { user: { id: number } },
-  ) {
+  async getUserGrupos(@Request() req: Request & { user: { id: number } }) {
     const usuario = await this.seguridadService.obtenerUsuario(req.user.id);
     if (!usuario || !usuario.grupos) return [];
-    
+
     return usuario.grupos.map((grupo) => ({
       id: grupo.id,
       nombre: grupo.nombre,
       estaActivo: grupo.estaActivo,
-      accionesCount: grupo.acciones?.length || 0,
+      formulariosCount: grupo.formularios?.length || 0,
     }));
   }
 }

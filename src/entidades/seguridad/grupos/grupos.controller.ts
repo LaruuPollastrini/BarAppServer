@@ -59,6 +59,6 @@ export class GruposController {
   async assignAllActionsToGrupo(
     @Param('nombre') nombre: string,
   ): Promise<GrupoResponseDto> {
-    return this.gruposService.assignAllPredefinedActionsToGrupo(nombre);
+    return this.gruposService.assignAllFormulariosToGrupo(nombre);
   }
 }

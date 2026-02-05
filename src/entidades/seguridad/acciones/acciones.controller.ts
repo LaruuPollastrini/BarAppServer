@@ -1,17 +1,23 @@
 import {
   Controller,
   Get,
+  Put,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { AccionesService } from './acciones.service';
-import { AccionResponseDto } from './acciones.dto';
+import { AccionResponseDto, UpdateAccionDto } from './acciones.dto';
 
 @Controller('acciones')
+@UseGuards(AuthGuard('jwt'))
 export class AccionesController {
   constructor(private readonly accionesService: AccionesService) {}
 
   /**
    * Get all actions that exist in the database
-   * This is used by the frontend to display available actions when assigning to groups
    */
   @Get()
   async findAll(): Promise<AccionResponseDto[]> {
@@ -24,15 +30,17 @@ export class AccionesController {
   }
 
   @Get('predefinidas/con-grupos')
-  async getPredefinedActionsWithGrupos(): Promise<Array<{
-    key: string;
-    label: string;
-    formulario: string;
-    accionNombre: string;
-    grupos: Array<{ id: number; nombre: string }>;
-    existsInDb: boolean;
-    dbId?: number;
-  }>> {
+  async getPredefinedActionsWithGrupos(): Promise<
+    Array<{
+      key: string;
+      label: string;
+      formulario: string;
+      accionNombre: string;
+      grupos: Array<{ id: number; nombre: string }>;
+      existsInDb: boolean;
+      dbId?: number;
+    }>
+  > {
     return this.accionesService.getPredefinedActionsWithGrupos();
   }
 
@@ -50,12 +58,25 @@ export class AccionesController {
     acciones: Array<{
       id: number;
       nombre: string;
-      formulario: string;
-      modulo: string;
+      formularios: string[];
       key: string;
     }>;
   }> {
     return this.accionesService.verifyAccionesMatch();
   }
-}
 
+  @Get(':id')
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<AccionResponseDto> {
+    return this.accionesService.findOne(id);
+  }
+
+  @Put(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateAccionDto: UpdateAccionDto,
+  ): Promise<AccionResponseDto> {
+    return this.accionesService.update(id, updateAccionDto);
+  }
+}

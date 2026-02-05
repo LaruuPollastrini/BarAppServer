@@ -1,18 +1,18 @@
 export class CreateAccionDto {
   nombre: string;
-  formularioId: number;
+  formulariosIds?: number[];
 }
 
 export class UpdateAccionDto {
-  nombre: string;
-  formularioId: number;
+  nombre?: string;
+  formulariosIds?: number[];
 }
 
 export class AccionResponseDto {
   id: number;
   nombre: string;
-  formulario?: {
+  formularios?: Array<{
     id: number;
     nombre: string;
-  };
+  }>;
 }

@@ -21,13 +21,13 @@ export class SeguridadService {
       where: { id: userId },
       relations: [
         'grupos',
-        'grupos.acciones',
-        'grupos.acciones.formulario',
-        'grupos.acciones.formulario.modulo',
+        'grupos.formularios',
+        'grupos.formularios.acciones',
+        'grupos.formularios.modulo',
         'grupos.gruposPadres',
-        'grupos.gruposPadres.acciones',
-        'grupos.gruposPadres.acciones.formulario',
-        'grupos.gruposPadres.acciones.formulario.modulo',
+        'grupos.gruposPadres.formularios',
+        'grupos.gruposPadres.formularios.acciones',
+        'grupos.gruposPadres.formularios.modulo',
       ],
     });
   }
@@ -44,25 +44,22 @@ export class SeguridadService {
     const usuario = await this.obtenerUsuario(userId);
     if (!usuario || !usuario.grupos) return false;
 
-    // Check if user has any action that belongs to a form that belongs to the modulo
     for (const grupo of usuario.grupos) {
-      if (grupo.acciones) {
-        for (const accion of grupo.acciones) {
+      if (grupo.formularios) {
+        for (const form of grupo.formularios) {
           if (
-            accion.formulario?.modulo?.nombre.toLowerCase() ===
-            moduloNombre.toLowerCase()
+            form.modulo?.nombre?.toLowerCase() === moduloNombre.toLowerCase()
           ) {
             return true;
           }
         }
       }
-      // Check parent groups recursively
       if (grupo.gruposPadres) {
         for (const grupoPadre of grupo.gruposPadres) {
-          if (grupoPadre.acciones) {
-            for (const accion of grupoPadre.acciones) {
+          if (grupoPadre.formularios) {
+            for (const form of grupoPadre.formularios) {
               if (
-                accion.formulario?.modulo?.nombre.toLowerCase() ===
+                form.modulo?.nombre?.toLowerCase() ===
                 moduloNombre.toLowerCase()
               ) {
                 return true;
@@ -79,35 +76,30 @@ export class SeguridadService {
   async obtenerModulosAccesibles(userId: number): Promise<string[]> {
     const usuario = await this.obtenerUsuario(userId);
     if (!usuario || !usuario.grupos) {
-      console.log(`[obtenerModulosAccesibles] Usuario ${userId} no tiene grupos`);
+      console.log(
+        `[obtenerModulosAccesibles] Usuario ${userId} no tiene grupos`,
+      );
       return [];
     }
 
     const modulosSet = new Set<string>();
 
     for (const grupo of usuario.grupos) {
-      if (grupo.acciones) {
-        for (const accion of grupo.acciones) {
-          if (accion.formulario?.modulo?.nombre) {
-            const moduloNombre = accion.formulario.modulo.nombre;
-            modulosSet.add(moduloNombre);
-            console.log(`[obtenerModulosAccesibles] Grupo "${grupo.nombre}" tiene acción "${accion.nombre}" → formulario "${accion.formulario.nombre}" → módulo "${moduloNombre}"`);
-          } else {
-            console.warn(`[obtenerModulosAccesibles] Acción "${accion.nombre}" (ID: ${accion.id}) no tiene formulario.modulo vinculado`);
+      if (grupo.formularios) {
+        for (const form of grupo.formularios) {
+          if (form.modulo?.nombre) {
+            modulosSet.add(form.modulo.nombre);
+            console.log(
+              `[obtenerModulosAccesibles] Grupo "${grupo.nombre}" → formulario "${form.nombre}" → módulo "${form.modulo.nombre}"`,
+            );
           }
         }
-      } else {
-        console.log(`[obtenerModulosAccesibles] Grupo "${grupo.nombre}" no tiene acciones`);
       }
-      // Check parent groups recursively
       if (grupo.gruposPadres) {
         for (const grupoPadre of grupo.gruposPadres) {
-          if (grupoPadre.acciones) {
-            for (const accion of grupoPadre.acciones) {
-              if (accion.formulario?.modulo?.nombre) {
-                const moduloNombre = accion.formulario.modulo.nombre;
-                modulosSet.add(moduloNombre);
-              }
+          if (grupoPadre.formularios) {
+            for (const form of grupoPadre.formularios) {
+              if (form.modulo?.nombre) modulosSet.add(form.modulo.nombre);
             }
           }
         }
@@ -115,34 +107,43 @@ export class SeguridadService {
     }
 
     const modulosArray = Array.from(modulosSet);
-    console.log(`[obtenerModulosAccesibles] Usuario ${userId} tiene acceso a módulos:`, modulosArray);
+    console.log(
+      `[obtenerModulosAccesibles] Usuario ${userId} tiene acceso a módulos:`,
+      modulosArray,
+    );
     return modulosArray;
   }
 
   async obtenerAccionesAccesibles(userId: number): Promise<string[]> {
     const usuario = await this.obtenerUsuario(userId);
     if (!usuario) {
-      console.log(`[obtenerAccionesAccesibles] Usuario ${userId} no encontrado`);
+      console.log(
+        `[obtenerAccionesAccesibles] Usuario ${userId} no encontrado`,
+      );
       return [];
     }
-    
     if (!usuario.grupos || usuario.grupos.length === 0) {
-      console.log(`[obtenerAccionesAccesibles] Usuario ${userId} no tiene grupos`);
+      console.log(
+        `[obtenerAccionesAccesibles] Usuario ${userId} no tiene grupos`,
+      );
       return [];
     }
-    
-    console.log(`[obtenerAccionesAccesibles] Usuario ${userId} tiene ${usuario.grupos.length} grupo(s)`);
+    console.log(
+      `[obtenerAccionesAccesibles] Usuario ${userId} tiene ${usuario.grupos.length} grupo(s)`,
+    );
     for (const grupo of usuario.grupos) {
-      console.log(`[obtenerAccionesAccesibles] Grupo "${grupo.nombre}" tiene ${grupo.acciones?.length || 0} acción(es)`);
-      if (grupo.acciones && grupo.acciones.length > 0) {
-        grupo.acciones.forEach((accion) => {
-          console.log(`[obtenerAccionesAccesibles] - Acción: "${accion.nombre}", Formulario: "${accion.formulario?.nombre || 'N/A'}"`);
-        });
-      }
+      const totalAcciones =
+        grupo.formularios?.reduce((n, f) => n + (f.acciones?.length || 0), 0) ??
+        0;
+      console.log(
+        `[obtenerAccionesAccesibles] Grupo "${grupo.nombre}" tiene ${grupo.formularios?.length ?? 0} formulario(s) y ${totalAcciones} acción(es)`,
+      );
     }
-    
     const acciones = usuario.obtenerAcciones();
-    console.log(`[obtenerAccionesAccesibles] Usuario ${userId} tiene ${acciones.length} acciones accesibles:`, acciones);
+    console.log(
+      `[obtenerAccionesAccesibles] Usuario ${userId} tiene ${acciones.length} acciones accesibles:`,
+      acciones,
+    );
     return acciones;
   }
 
@@ -154,7 +155,7 @@ export class SeguridadService {
       where: { id: grupoHijoId },
       relations: ['gruposPadres'],
     });
-    if (!hijo?.gruposPadres) throw new Error('Grupo hijo no encontrado');
+    if (!hijo) throw new Error('Grupo hijo no encontrado');
     const padre = await this.grupoRepo.findOne({ where: { id: grupoPadreId } });
     if (!padre) throw new Error('Grupo padre no encontrado');
     hijo.gruposPadres = [...(hijo.gruposPadres || []), padre];
@@ -163,20 +164,19 @@ export class SeguridadService {
 
   /**
    * Debug endpoint to check user permissions
-   * Returns detailed information about user's grupos, acciones, and modulos
+   * Returns detailed information about user's grupos, formularios, acciones, and modulos
    */
   async debugUserPermissions(userId: number): Promise<{
     userId: number;
     grupos: Array<{
       id: number;
       nombre: string;
-      accionesCount: number;
-      acciones: Array<{
+      formulariosCount: number;
+      formularios: Array<{
         id: number;
         nombre: string;
-        formulario: string | null;
         modulo: string | null;
-        hasModulo: boolean;
+        accionesCount: number;
       }>;
     }>;
     modulosAccesibles: string[];
@@ -210,46 +210,31 @@ export class SeguridadService {
       formularioNombre?: string;
     }> = [];
 
-    const gruposDebug = usuario.grupos?.map((grupo) => {
-      const accionesDebug = grupo.acciones?.map((accion) => {
-        const formularioNombre = accion.formulario?.nombre || null;
-        const moduloNombre = accion.formulario?.modulo?.nombre || null;
-        const hasModulo = !!moduloNombre;
-
-        // Check for issues
-        if (!accion.formulario) {
-          issues.push({
-            type: 'missing_formulario',
-            message: `Acción "${accion.nombre}" (ID: ${accion.id}) no tiene formulario asignado`,
-            accionId: accion.id,
-            accionNombre: accion.nombre,
-          });
-        } else if (!accion.formulario.modulo) {
-          issues.push({
-            type: 'missing_modulo',
-            message: `Formulario "${formularioNombre}" no tiene módulo asignado (Acción: "${accion.nombre}", ID: ${accion.id})`,
-            accionId: accion.id,
-            accionNombre: accion.nombre,
-            formularioNombre: formularioNombre || undefined,
-          });
-        }
+    const gruposDebug =
+      usuario.grupos?.map((grupo) => {
+        const formulariosDebug = (grupo.formularios || []).map((form) => {
+          if (!form.modulo) {
+            issues.push({
+              type: 'missing_modulo',
+              message: `Formulario "${form.nombre}" (ID: ${form.id}) no tiene módulo asignado`,
+              formularioNombre: form.nombre,
+            });
+          }
+          return {
+            id: form.id,
+            nombre: form.nombre,
+            modulo: form.modulo?.nombre ?? null,
+            accionesCount: form.acciones?.length ?? 0,
+          };
+        });
 
         return {
-          id: accion.id,
-          nombre: accion.nombre,
-          formulario: formularioNombre,
-          modulo: moduloNombre,
-          hasModulo,
+          id: grupo.id,
+          nombre: grupo.nombre,
+          formulariosCount: formulariosDebug.length,
+          formularios: formulariosDebug,
         };
       }) || [];
-
-      return {
-        id: grupo.id,
-        nombre: grupo.nombre,
-        accionesCount: accionesDebug.length,
-        acciones: accionesDebug,
-      };
-    }) || [];
 
     return {
       userId,
