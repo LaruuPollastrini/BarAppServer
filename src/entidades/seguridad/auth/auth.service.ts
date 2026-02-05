@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/users.entity';
 import { RefreshToken } from './refresh-token.entity';
@@ -29,6 +30,7 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     private jwtService: JwtService,
+    private mailerService: MailerService,
     private seguridadService: SeguridadService,
   ) {}
 
@@ -163,27 +165,42 @@ export class AuthService {
     if (!user) {
       // Don't reveal if user exists or not for security
       return {
-        message: 'Si el correo existe, se enviará un enlace de recuperación',
+        message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.',
       };
     }
 
-    // Generate reset token (in production, send via email)
+    // Generate reset token (válido 1 hora)
     const resetToken = this.jwtService.sign(
       { sub: user.id, type: 'password-reset' },
       { expiresIn: '1h' },
     );
 
-    // In production, send email with reset link
-    // For now, we'll just return a message
-    // In a real app, you'd store this token and send it via email
-    console.log(`Password reset token for ${user.Correo}: ${resetToken}`);
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    await this.mailerService.sendMail({
+      to: user.Correo,
+      subject: 'Restablecer contraseña - BarApp',
+      html: `
+        <p>Hola ${user.Nombre},</p>
+        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+        <p>Haz clic en el siguiente enlace (válido por 1 hora):</p>
+        <p><a href="${resetLink}">Restablecer contraseña</a></p>
+        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+        <p>— BarApp</p>
+      `,
+      text: `Restablecer contraseña: ${resetLink}`,
+    });
 
     return {
-      message: 'Si el correo existe, se enviará un enlace de recuperación',
+      message: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.',
     };
   }
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
     try {
       const payload = this.jwtService.verify<{
         sub: number;
@@ -214,6 +231,8 @@ export class AuthService {
         { userId: user.id, isActive: true },
         { isActive: false },
       );
+
+      return { message: 'Contraseña actualizada correctamente' };
     } catch (error: unknown) {
       if (
         error &&

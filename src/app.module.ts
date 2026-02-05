@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { MailerModule } from '@nestjs-modules/mailer';
 import { PedidoModule } from './entidades/realizar-pedidos/pedidos/pedido.module';
 import { TicketModule } from './entidades/realizar-pedidos/ticket/ticket.module';
 import { ProductoModule } from './entidades/realizar-pedidos/productos/productos.module';
@@ -14,6 +15,20 @@ import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
 
 @Module({
   imports: [
+    MailerModule.forRoot({
+      transport: {
+        host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.EMAIL_PORT || '587', 10),
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      },
+      defaults: {
+        from: process.env.EMAIL_FROM || '"BarApp" <noreply@barapp.com>',
+      },
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
