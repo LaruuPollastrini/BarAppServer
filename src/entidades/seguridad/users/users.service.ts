@@ -1,9 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User } from './users.entity';
 import { Grupo } from '../grupos/grupos.entity';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './users.dto';
+
+const NOMBRE_GRUPO_ADMIN = 'admin';
+
+function isAdminGroup(grupo: Grupo): boolean {
+  return grupo.nombre?.trim().toLowerCase() === NOMBRE_GRUPO_ADMIN;
+}
+
+function userHasAdminGroup(user: User): boolean {
+  return user.grupos?.some(
+    (g) => g.nombre?.trim().toLowerCase() === NOMBRE_GRUPO_ADMIN,
+  )
+    ? true
+    : false;
+}
 
 @Injectable()
 export class UsersService {
@@ -78,11 +97,13 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    const hashedPassword = await bcrypt.hash(createUserDto.contrasena, 10);
+
     const user = this.usersRepository.create({
       Nombre: createUserDto.nombre,
       Apellido: createUserDto.apellido,
       Correo: createUserDto.correo,
-      Contrasena: createUserDto.contrasena,
+      Contrasena: hashedPassword,
       Telefono: createUserDto.telefono,
       EstaActivo: createUserDto.estaActivo !== undefined ? createUserDto.estaActivo : true,
     });
@@ -93,7 +114,9 @@ export class UsersService {
       const grupos = await this.grupoRepository.findBy({
         id: In(createUserDto.gruposIds),
       });
-      savedUser.grupos = grupos;
+      // No se puede asignar el grupo Admin al crear usuarios
+      const gruposSinAdmin = grupos.filter((g) => !isAdminGroup(g));
+      savedUser.grupos = gruposSinAdmin;
       await this.usersRepository.save(savedUser);
     }
 
@@ -123,7 +146,21 @@ export class UsersService {
       const grupos = await this.grupoRepository.findBy({
         id: In(updateUserDto.gruposIds),
       });
-      user.grupos = grupos;
+      const tieneAdmin = userHasAdminGroup(user);
+      // Si ya tiene Admin, conservarlo; si no, no se puede asignar Admin
+      const gruposFiltrados = grupos.filter((g) => !isAdminGroup(g));
+      if (tieneAdmin) {
+        const adminGrupo = user.grupos?.find(
+          (g) => g.nombre?.trim().toLowerCase() === NOMBRE_GRUPO_ADMIN,
+        );
+        if (adminGrupo) {
+          user.grupos = [...gruposFiltrados, adminGrupo];
+        } else {
+          user.grupos = gruposFiltrados;
+        }
+      } else {
+        user.grupos = gruposFiltrados;
+      }
     }
 
     await this.usersRepository.save(user);
@@ -131,7 +168,18 @@ export class UsersService {
   }
 
   async remove(id: number): Promise<void> {
-    await this.findOne(id); // Check if user exists
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['grupos'],
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+    if (userHasAdminGroup(user)) {
+      throw new ForbiddenException(
+        'No se puede eliminar al usuario que pertenece al grupo Admin (usuario root).',
+      );
+    }
     await this.usersRepository.delete(id);
   }
 }
