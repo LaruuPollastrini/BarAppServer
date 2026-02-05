@@ -48,8 +48,14 @@ export class User {
   grupos: Grupo[];
 
   // ← Verifica si tiene una acción específica
+  // Si pertenece al grupo Admin, tiene acceso a todas las acciones (no se chequea acción por acción)
   tieneAccion(nombreAccion: string): boolean {
     if (!this.grupos || this.grupos.length === 0) return false;
+
+    const isAdmin = this.grupos.some(
+      (g) => g.nombre?.trim().toLowerCase() === 'admin',
+    );
+    if (isAdmin) return true;
 
     return this.grupos.some((grupo) => grupo.tieneAccion(nombreAccion));
   }

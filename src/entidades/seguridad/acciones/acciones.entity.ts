@@ -1,15 +1,13 @@
 import { Formulario } from 'src/entidades/seguridad/formulario/formulario.entity';
-import { Grupo } from 'src/entidades/seguridad/grupos/grupos.entity';
 import {
-  ManyToMany,
   PrimaryGeneratedColumn,
   Entity,
   Column,
-  JoinColumn,
-  ManyToOne,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
-@Entity()
+@Entity('accion')
 export class Accion {
   @PrimaryGeneratedColumn()
   id: number;
@@ -17,10 +15,11 @@ export class Accion {
   @Column()
   nombre: string;
 
-  @ManyToMany(() => Grupo, (grupo) => grupo.acciones)
-  grupos: Grupo[];
-
-  @ManyToOne(() => Formulario, (formulario) => formulario.acciones)
-  @JoinColumn({ name: 'formulario_id' })
-  formulario: Formulario;
+  @ManyToMany(() => Formulario, (formulario) => formulario.acciones)
+  @JoinTable({
+    name: 'accion_formulario',
+    joinColumn: { name: 'accion_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'formulario_id', referencedColumnName: 'id' },
+  })
+  formularios: Formulario[];
 }

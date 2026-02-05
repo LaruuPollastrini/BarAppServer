@@ -7,12 +7,18 @@ import { Mesa } from '../mesa/mesas.entity';
 import { User } from 'src/entidades/seguridad/users/users.entity';
 import { Producto } from '../productos/productos.entity';
 import { DetallesPedido } from '../detallePedido/detallespedido.entity';
+import { SessionModule } from '../session/session.module';
+import { SeguridadModule } from '../../seguridad/seguridad.module';
 
 @Module({
-  // agregar las entidades que se necesiten si se usan como repository en el archivo de service.
-  imports: [TypeOrmModule.forFeature([Pedidos, Mesa, User, Producto, DetallesPedido])],
+  imports: [
+    TypeOrmModule.forFeature([Pedidos, Mesa, User, Producto, DetallesPedido]),
+    SessionModule,
+    SeguridadModule,
+  ],
   providers: [PedidoService],
   // agregar controladora
   controllers: [PedidosController],
+  exports: [PedidoService],
 })
 export class PedidoModule {}

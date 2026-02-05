@@ -25,7 +25,7 @@ export class UsersService {
       grupos: user.grupos?.map((grupo) => ({
         id: grupo.id,
         nombre: grupo.nombre,
-        estado: grupo.Estado,
+        estado: grupo.estaActivo,
       })),
     };
   }
@@ -43,7 +43,7 @@ export class UsersService {
         grupos: {
           id: true,
           nombre: true,
-          Estado: true,
+          estaActivo: true,
         },
       },
     });
@@ -65,7 +65,7 @@ export class UsersService {
         grupos: {
           id: true,
           nombre: true,
-          Estado: true,
+          estaActivo: true,
         },
       },
     });
@@ -114,8 +114,9 @@ export class UsersService {
     user.Apellido = updateUserDto.apellido;
     user.Correo = updateUserDto.correo;
     user.Telefono = updateUserDto.telefono;
+    // Always update estaActivo when provided (handles both true and false)
     if (updateUserDto.estaActivo !== undefined) {
-      user.EstaActivo = updateUserDto.estaActivo;
+      user.EstaActivo = Boolean(updateUserDto.estaActivo);
     }
 
     if (updateUserDto.gruposIds !== undefined) {

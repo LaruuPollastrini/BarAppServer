@@ -1,9 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Formulario } from './formulario.entity';
 import { Modulo } from '../modulo/modulo.entity';
-import { CreateFormularioDto, UpdateFormularioDto, FormularioResponseDto } from './formulario.dto';
+import { Accion } from '../acciones/acciones.entity';
+import {
+  CreateFormularioDto,
+  UpdateFormularioDto,
+  FormularioResponseDto,
+} from './formulario.dto';
 
 @Injectable()
 export class FormularioService {
@@ -12,9 +17,13 @@ export class FormularioService {
     private formularioRepository: Repository<Formulario>,
     @InjectRepository(Modulo)
     private moduloRepository: Repository<Modulo>,
+    @InjectRepository(Accion)
+    private accionRepository: Repository<Accion>,
   ) {}
 
-  private transformToResponseDto(formulario: Formulario): FormularioResponseDto {
+  private transformToResponseDto(
+    formulario: Formulario,
+  ): FormularioResponseDto {
     return {
       id: formulario.id,
       nombre: formulario.nombre,
@@ -35,7 +44,9 @@ export class FormularioService {
     const formularios = await this.formularioRepository.find({
       relations: ['modulo', 'acciones'],
     });
-    return formularios.map((formulario) => this.transformToResponseDto(formulario));
+    return formularios.map((formulario) =>
+      this.transformToResponseDto(formulario),
+    );
   }
 
   async findOne(id: number): Promise<FormularioResponseDto> {
@@ -51,7 +62,9 @@ export class FormularioService {
     return this.transformToResponseDto(formulario);
   }
 
-  async create(createFormularioDto: CreateFormularioDto): Promise<FormularioResponseDto> {
+  async create(
+    createFormularioDto: CreateFormularioDto,
+  ): Promise<FormularioResponseDto> {
     const modulo = await this.moduloRepository.findOne({
       where: { id: createFormularioDto.moduloId },
     });
@@ -67,14 +80,29 @@ export class FormularioService {
       modulo: modulo,
     });
 
-    return this.formularioRepository.save(formulario);
+    const saved = await this.formularioRepository.save(formulario);
+    if (createFormularioDto.accionesIds?.length) {
+      const acciones = await this.accionRepository.find({
+        where: { id: In(createFormularioDto.accionesIds) },
+      });
+      saved.acciones = acciones;
+      await this.formularioRepository.save(saved);
+    }
+    return this.findOne(saved.id);
   }
 
   async update(
     id: number,
     updateFormularioDto: UpdateFormularioDto,
   ): Promise<FormularioResponseDto> {
-    await this.findOne(id); // Check if formulario exists
+    const formulario = await this.formularioRepository.findOne({
+      where: { id },
+      relations: ['modulo', 'acciones'],
+    });
+
+    if (!formulario) {
+      throw new NotFoundException(`Formulario with ID ${id} not found`);
+    }
 
     const modulo = await this.moduloRepository.findOne({
       where: { id: updateFormularioDto.moduloId },
@@ -86,11 +114,17 @@ export class FormularioService {
       );
     }
 
-    await this.formularioRepository.update(id, {
-      nombre: updateFormularioDto.nombre,
-      modulo: modulo,
-    });
+    formulario.nombre = updateFormularioDto.nombre;
+    formulario.modulo = modulo;
 
+    if (updateFormularioDto.accionesIds !== undefined) {
+      const acciones = await this.accionRepository.find({
+        where: { id: In(updateFormularioDto.accionesIds) },
+      });
+      formulario.acciones = acciones;
+    }
+
+    await this.formularioRepository.save(formulario);
     return this.findOne(id);
   }
 
@@ -99,4 +133,3 @@ export class FormularioService {
     await this.formularioRepository.delete(id);
   }
 }
-
