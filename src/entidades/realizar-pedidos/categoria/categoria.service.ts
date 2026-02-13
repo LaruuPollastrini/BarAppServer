@@ -1,6 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { Categoria } from './categoria.entity';
 
 @Injectable()
@@ -31,7 +36,7 @@ export class CategoriaService {
 
   async create(nombre: string, descripcion?: string): Promise<Categoria> {
     if (!nombre || nombre.trim() === '') {
-      throw new Error('El nombre de la categoría es obligatorio');
+      throw new BadRequestException('El nombre de la categoría es obligatorio');
     }
 
     const existing = await this.categoriaRepository.findOneBy({
@@ -39,12 +44,11 @@ export class CategoriaService {
     });
     if (existing) {
       if (existing.estaEliminado) {
-        // Reactivate deleted category
         existing.estaEliminado = false;
         existing.descripcion = descripcion?.trim() || existing.descripcion;
         return this.categoriaRepository.save(existing);
       }
-      throw new Error(`La categoría "${nombre}" ya existe`);
+      throw new ConflictException(`La categoría "${nombre.trim()}" ya existe`);
     }
 
     const categoria = this.categoriaRepository.create({
@@ -56,35 +60,48 @@ export class CategoriaService {
 
   async update(
     id: number,
-    nombre: string,
+    nombre?: string,
     descripcion?: string,
   ): Promise<Categoria> {
     const categoria = await this.categoriaRepository.findOneBy({ id });
     if (!categoria) {
-      throw new Error(`Categoría con ID ${id} no encontrada`);
+      throw new NotFoundException(`Categoría con ID ${id} no encontrada`);
     }
 
-    if (!nombre || nombre.trim() === '') {
-      throw new Error('El nombre de la categoría es obligatorio');
+    const newNombre =
+      nombre !== undefined && nombre !== null ? nombre.trim() : null;
+    if (newNombre !== null) {
+      if (newNombre === '') {
+        throw new BadRequestException(
+          'El nombre de la categoría es obligatorio',
+        );
+      }
+      const existing = await this.categoriaRepository.findOne({
+        where: {
+          nombre: newNombre,
+          id: Not(id),
+          estaEliminado: false,
+        },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `La categoría "${newNombre}" ya existe`,
+        );
+      }
+      categoria.nombre = newNombre;
     }
 
-    // Check if name is taken by another category
-    const existing = await this.categoriaRepository.findOneBy({
-      nombre: nombre.trim(),
-    });
-    if (existing && existing.id !== id) {
-      throw new Error(`La categoría "${nombre}" ya existe`);
+    if (descripcion !== undefined) {
+      categoria.descripcion = descripcion?.trim() || null;
     }
 
-    categoria.nombre = nombre.trim();
-    categoria.descripcion = descripcion?.trim() || null;
     return this.categoriaRepository.save(categoria);
   }
 
   async remove(id: number): Promise<void> {
     const categoria = await this.categoriaRepository.findOneBy({ id });
     if (!categoria) {
-      throw new Error(`Categoría con ID ${id} no encontrada`);
+      throw new NotFoundException(`Categoría con ID ${id} no encontrada`);
     }
     categoria.estaEliminado = true;
     await this.categoriaRepository.save(categoria);
