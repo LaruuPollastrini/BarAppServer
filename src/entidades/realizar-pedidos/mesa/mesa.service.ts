@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Mesa } from './mesas.entity';
@@ -31,26 +36,22 @@ export class MesaService {
   }
 
   async agregar(numero: number): Promise<void> {
-    try {
-      if (numero <= 0) {
-        throw new Error('El número de mesa no puede ser menor o igual a cero');
-      }
-      const MesaExistente = await this.mesasRepository.findOneBy({ numero });
-      if (MesaExistente) {
-        throw new Error(`Mesa con numero ${numero} ya existe`);
-      }
-      const codigoVerificacion = this.generateVerificationCode();
-      const nuevoMesa = this.mesasRepository.create({
-        numero,
-        estaAbierta: true,
-        codigoVerificacion,
-      });
-      await this.mesasRepository.save(nuevoMesa);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      throw new Error(`Error al agregar mesa: ${errorMessage}`);
+    if (numero <= 0) {
+      throw new BadRequestException(
+        'El número de mesa no puede ser menor o igual a cero',
+      );
     }
+    const mesaExistente = await this.mesasRepository.findOneBy({ numero });
+    if (mesaExistente) {
+      throw new ConflictException(`Ya existe una mesa con el número ${numero}`);
+    }
+    const codigoVerificacion = this.generateVerificationCode();
+    const nuevoMesa = this.mesasRepository.create({
+      numero,
+      estaAbierta: true,
+      codigoVerificacion,
+    });
+    await this.mesasRepository.save(nuevoMesa);
   }
 
   async findByNumero(numero: number): Promise<Mesa | null> {
@@ -67,7 +68,7 @@ export class MesaService {
   async updateStatus(idmesa: number, estaAbierta: boolean): Promise<void> {
     const mesa = await this.mesasRepository.findOneBy({ idmesa });
     if (!mesa) {
-      throw new Error(`Mesa con ID ${idmesa} no encontrada`);
+      throw new NotFoundException(`Mesa con ID ${idmesa} no encontrada`);
     }
 
     // If opening the table, generate a new verification code
@@ -127,21 +128,17 @@ export class MesaService {
   }
 
   async modificar(mesa: Mesa): Promise<void> {
-    try {
-      const mesaExistente = await this.mesasRepository.findOneBy({
-        idmesa: mesa.idmesa,
-      });
-      if (!mesaExistente) {
-        throw new Error(`Producto con ID ${mesa.idmesa} no encontrado`);
-      }
-      if (mesa.numero <= 0) {
-        throw new Error('la mesa no puede ser menor o igual a cero');
-      }
-      await this.mesasRepository.update({ idmesa: mesa.idmesa }, mesa);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      throw new Error(`Error al modificar la mesa: ${errorMessage}`);
+    const mesaExistente = await this.mesasRepository.findOneBy({
+      idmesa: mesa.idmesa,
+    });
+    if (!mesaExistente) {
+      throw new NotFoundException(`Mesa con ID ${mesa.idmesa} no encontrada`);
     }
+    if (mesa.numero <= 0) {
+      throw new BadRequestException(
+        'El número de mesa no puede ser menor o igual a cero',
+      );
+    }
+    await this.mesasRepository.update({ idmesa: mesa.idmesa }, mesa);
   }
 }

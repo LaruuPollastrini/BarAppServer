@@ -35,7 +35,7 @@ export class CategoriaController {
   @Put('/:id')
   async actualizarCategoria(
     @Param('id') id: number,
-    @Body('nombre') nombre: string,
+    @Body('nombre') nombre?: string,
     @Body('descripcion') descripcion?: string,
   ): Promise<Categoria> {
     return this.categoriaService.update(id, nombre, descripcion);

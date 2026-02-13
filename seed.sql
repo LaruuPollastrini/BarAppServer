@@ -274,7 +274,8 @@ INSERT INTO `accion` (`id`, `nombre`) VALUES
 (41, 'Ver Productos Menos Pedidos'),
 (42, 'Ver Productos Nunca Pedidos'),
 (43, 'Reporte de Ingresos'),
-(44, 'Ticket Promedio');
+(44, 'Ticket Promedio'),
+(45, 'Ver Mesa');
 
 -- -----------------------------------------------------------------------------
 -- Enlazar accion_formulario (accion_id, formulario_id) - una acción puede estar en uno o varios formularios
@@ -283,7 +284,7 @@ INSERT INTO `accion` (`id`, `nombre`) VALUES
 INSERT INTO `accion_formulario` (`accion_id`, `formulario_id`) VALUES
 (1, 3), (2, 3), (3, 3), (4, 3),
 (5, 4), (6, 4), (7, 4), (8, 4),
-(9, 1), (10, 1), (11, 1), (12, 1), (13, 1), (14, 1), (38, 1), (39, 1),
+(9, 1), (10, 1), (11, 1), (12, 1), (13, 1), (14, 1), (38, 1), (39, 1), (45, 1),
 (15, 2), (16, 2), (17, 2), (18, 2),
 (19, 5), (20, 5), (40, 5), (41, 5), (42, 5), (43, 5), (44, 5),
 (21, 6), (22, 6), (23, 6), (24, 6),
