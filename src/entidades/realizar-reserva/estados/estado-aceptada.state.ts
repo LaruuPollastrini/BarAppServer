@@ -1,22 +1,15 @@
-// estado-aceptada.state.ts
-import { StateReserva } from './state-reserva.entity';
-import { CerradaState } from './estado-cerrada.state';
-import { CanceladaState } from './estado-cancelada.state';
+import { StateReserva } from './state-reserva';
+import { EstadoReserva } from './estado-reserva.enum';
 
+/** Aceptada: confirmada por el bar. Puede cancelarse o cerrarse (cuando el cliente asiste). */
 export class AceptadaState extends StateReserva {
-  aceptar() {
-    // Ya está aceptada, no cambia
+  readonly nombre = EstadoReserva.Aceptada;
+
+  cancelar(): void {
+    this.cambiarA(EstadoReserva.Cancelada);
   }
 
-  rechazar() {
-    throw new Error('No se puede rechazar una reserva ya aceptada');
-  }
-
-  cancelar() {
-    this.reserva.estado = 'Cancelada';
-  }
-
-  cerrar() {
-    this.reserva.estado = 'Cerrada';
+  cerrar(): void {
+    this.cambiarA(EstadoReserva.Cerrada);
   }
 }

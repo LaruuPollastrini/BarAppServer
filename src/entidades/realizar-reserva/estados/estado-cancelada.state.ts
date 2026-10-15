@@ -1,18 +1,7 @@
-// estado-cancelada.state.ts
-import { StateReserva } from './state-reserva.entity';
+import { StateReserva } from './state-reserva';
+import { EstadoReserva } from './estado-reserva.enum';
 
+/** Cancelada: estado final. No admite ninguna transición. */
 export class CanceladaState extends StateReserva {
-  aceptar() {
-    throw new Error('No se puede aceptar una reserva cancelada');
-  }
-
-  rechazar() {
-    throw new Error('No se puede rechazar una reserva cancelada');
-  }
-
-  cancelar() {}
-
-  cerrar() {
-    throw new Error('No se puede cerrar una reserva cancelada');
-  }
+  readonly nombre = EstadoReserva.Cancelada;
 }

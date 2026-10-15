@@ -2,43 +2,64 @@ import {
   Controller,
   Param,
   ParseIntPipe,
-  Put,
+  Patch,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { EstadoService } from './estado.service';
+import { ReservaRespuestaDto } from '../reservas/reserva.dto';
+import { User } from 'src/entidades/seguridad/users/users.entity';
+import { AccionesGuard } from '../../seguridad/guards/acciones.guard';
+import { RequiereAcciones } from '../../seguridad/decorators/acciones.decorator';
 
-@Controller('estado')
+type RequestConUsuario = { user: User };
+
+/**
+ * Cambios de estado de una reserva. Todos devuelven el detalle actualizado (con historial).
+ */
+@Controller('reservas')
+@UseGuards(AuthGuard('jwt'), AccionesGuard)
 export class EstadoController {
   constructor(private readonly estadoService: EstadoService) {}
 
-  // ==========================
-  // ACEPTAR RESERVA
-  // ==========================
-  @Put(':id/aceptar')
-  async aceptar(@Param('id', ParseIntPipe) id: number) {
-    return this.estadoService.aceptar(id);
+  // PATCH /reservas/:id/aceptar
+  @Patch(':id/aceptar')
+  @RequiereAcciones('Gestionar Reservas.Aceptar Reserva')
+  aceptar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestConUsuario,
+  ): Promise<ReservaRespuestaDto> {
+    return this.estadoService.aceptar(id, req.user);
   }
 
-  // ==========================
-  // RECHAZAR RESERVA
-  // ==========================
-  @Put(':id/rechazar')
-  async rechazar(@Param('id', ParseIntPipe) id: number) {
-    return this.estadoService.rechazar(id);
+  // PATCH /reservas/:id/rechazar
+  @Patch(':id/rechazar')
+  @RequiereAcciones('Gestionar Reservas.Rechazar Reserva')
+  rechazar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestConUsuario,
+  ): Promise<ReservaRespuestaDto> {
+    return this.estadoService.rechazar(id, req.user);
   }
 
-  // ==========================
-  // CANCELAR RESERVA
-  // ==========================
-  @Put(':id/cancelar')
-  async cancelar(@Param('id', ParseIntPipe) id: number) {
-    return this.estadoService.cancelar(id);
+  // PATCH /reservas/:id/cerrar
+  @Patch(':id/cerrar')
+  @RequiereAcciones('Recibir Reservas.Cerrar Reserva')
+  cerrar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestConUsuario,
+  ): Promise<ReservaRespuestaDto> {
+    return this.estadoService.cerrar(id, req.user);
   }
 
-  // ==========================
-  // CERRAR RESERVA
-  // ==========================
-  @Put(':id/cerrar')
-  async cerrar(@Param('id', ParseIntPipe) id: number) {
-    return this.estadoService.cerrar(id);
+  // PATCH /reservas/:id/cancelar  (solo el dueño de la reserva)
+  @Patch(':id/cancelar')
+  @RequiereAcciones('Realizar Reserva.Cancelar Mi Reserva')
+  cancelar(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestConUsuario,
+  ): Promise<ReservaRespuestaDto> {
+    return this.estadoService.cancelarMia(id, req.user);
   }
 }

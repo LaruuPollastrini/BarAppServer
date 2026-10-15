@@ -1,23 +1,19 @@
-// estado-pendiente.state.ts
-import { StateReserva } from './state-reserva.entity';
-import { AceptadaState } from './estado-aceptada.state';
-import { RechazadaState } from './estado-rechazada.state';
-import { CanceladaState } from './estado-cancelada.state';
+import { StateReserva } from './state-reserva';
+import { EstadoReserva } from './estado-reserva.enum';
 
+/** Pendiente: recién solicitada. Puede aceptarse, rechazarse o cancelarse. */
 export class PendienteState extends StateReserva {
-  aceptar() {
-    this.reserva.estado = 'Aceptada';
+  readonly nombre = EstadoReserva.Pendiente;
+
+  aceptar(): void {
+    this.cambiarA(EstadoReserva.Aceptada);
   }
 
-  rechazar() {
-    this.reserva.estado = 'Rechazada';
+  rechazar(): void {
+    this.cambiarA(EstadoReserva.Rechazada);
   }
 
-  cancelar() {
-    this.reserva.estado = 'Cancelada';
-  }
-
-  cerrar() {
-    throw new Error('No se puede cerrar una reserva pendiente');
+  cancelar(): void {
+    this.cambiarA(EstadoReserva.Cancelada);
   }
 }
