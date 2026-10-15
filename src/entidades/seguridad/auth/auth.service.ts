@@ -11,6 +11,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/users.entity';
 import { RefreshToken } from './refresh-token.entity';
+import { Grupo } from '../grupos/grupos.entity';
 import { SeguridadService } from '../seguridad.service';
 import {
   LoginDto,
@@ -29,6 +30,8 @@ export class AuthService {
     private userRepository: Repository<User>,
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
+    @InjectRepository(Grupo)
+    private grupoRepository: Repository<Grupo>,
     private jwtService: JwtService,
     private mailerService: MailerService,
     private seguridadService: SeguridadService,
@@ -88,6 +91,17 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(registerDto.contrasena, 10);
 
+    // Todo usuario que se registra desde la app es un cliente:
+    // se le asigna el grupo "Cliente" (sus permisos se administran desde el módulo de seguridad).
+    const grupoCliente = await this.grupoRepository.findOne({
+      where: { nombre: 'Cliente' },
+    });
+    if (!grupoCliente) {
+      console.warn(
+        '[register] No existe el grupo "Cliente". El usuario se crea sin grupo. Ejecutá el script del paso 1.',
+      );
+    }
+
     // Create user
     const user = this.userRepository.create({
       Nombre: registerDto.nombre,
@@ -96,6 +110,7 @@ export class AuthService {
       Contrasena: hashedPassword,
       Telefono: registerDto.telefono,
       EstaActivo: true,
+      grupos: grupoCliente ? [grupoCliente] : [],
     });
 
     const savedUser = await this.userRepository.save(user);
