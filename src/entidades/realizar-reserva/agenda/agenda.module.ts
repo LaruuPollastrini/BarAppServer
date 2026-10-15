@@ -1,15 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
 import { Agenda } from './agenda.entity';
-
-
 import { AgendaService } from './agenda.service';
 import { AgendaController } from './agenda.controller';
 import { Reserva } from '../reservas/reserva.entity';
+import { SeguridadModule } from '../../seguridad/seguridad.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Agenda, Reserva])],
+  imports: [TypeOrmModule.forFeature([Agenda, Reserva]), SeguridadModule],
   providers: [AgendaService],
   controllers: [AgendaController],
   exports: [AgendaService],
