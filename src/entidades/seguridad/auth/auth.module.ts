@@ -5,11 +5,12 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from '../users/users.entity';
 import { RefreshToken } from './refresh-token.entity';
+import { Grupo } from '../grupos/grupos.entity';
 import { SeguridadModule } from '../seguridad.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken]),
+    TypeOrmModule.forFeature([User, RefreshToken, Grupo]),
     JwtModule.register({
       secret: 'tu-secreto-jwt',
       signOptions: { expiresIn: '15m' },

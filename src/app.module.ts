@@ -12,6 +12,9 @@ import { CategoriaModule } from './entidades/realizar-pedidos/categoria/categori
 import { SeguridadModule } from './entidades/seguridad/seguridad.module';
 import { AuthModule } from './entidades/seguridad/auth/auth.module';
 import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
+import { AgendaModule } from './entidades/realizar-reserva/agenda/agenda.module';
+import { ReservaModule } from './entidades/realizar-reserva/reservas/reserva.module';
+import { EstadoModule } from './entidades/realizar-reserva/estados/estado.module';
 
 @Module({
   imports: [
@@ -34,7 +37,7 @@ import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: 'password',
+      password: 'root',
       database: 'bar_app',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       // synchronize: false evita que TypeORM intente DROP INDEX en FKs (error ER_DROP_INDEX_FK en MySQL).
@@ -51,6 +54,10 @@ import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
     SessionModule,
     CategoriaModule,
     AuthModule,
+    // Core 2: Realizar reserva
+    AgendaModule,
+    ReservaModule,
+    EstadoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
