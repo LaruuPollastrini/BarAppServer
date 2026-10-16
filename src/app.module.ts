@@ -15,6 +15,7 @@ import { AccionesModule } from './entidades/seguridad/acciones/acciones.module';
 import { AgendaModule } from './entidades/realizar-reserva/agenda/agenda.module';
 import { ReservaModule } from './entidades/realizar-reserva/reservas/reserva.module';
 import { EstadoModule } from './entidades/realizar-reserva/estados/estado.module';
+import { ReportesReservaModule } from './entidades/realizar-reserva/reportes/reportes-reserva.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { EstadoModule } from './entidades/realizar-reserva/estados/estado.module
     AgendaModule,
     ReservaModule,
     EstadoModule,
+    ReportesReservaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
