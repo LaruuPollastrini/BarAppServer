@@ -12,6 +12,8 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../users/users.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Grupo } from '../grupos/grupos.entity';
+import { AuditoriaService } from '../auditoria/auditoria.service';
+import { TipoEventoSesion } from '../auditoria/auditoria-sesion.entity';
 import { SeguridadService } from '../seguridad.service';
 import {
   LoginDto,
@@ -35,18 +37,30 @@ export class AuthService {
     private jwtService: JwtService,
     private mailerService: MailerService,
     private seguridadService: SeguridadService,
+    private auditoriaService: AuditoriaService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
+  async login(loginDto: LoginDto, ip?: string): Promise<AuthResponseDto> {
     const user = await this.userRepository.findOne({
       where: { Correo: loginDto.correo },
     });
 
     if (!user) {
+      await this.auditoriaService.registrarSesion(TipoEventoSesion.LoginFallido, {
+        correo: loginDto.correo,
+        detalle: 'Correo no registrado',
+        ip,
+      });
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     if (!user.EstaActivo) {
+      await this.auditoriaService.registrarSesion(TipoEventoSesion.LoginFallido, {
+        usuario: user,
+        correo: loginDto.correo,
+        detalle: 'Usuario inactivo',
+        ip,
+      });
       throw new UnauthorizedException('Usuario inactivo');
     }
 
@@ -56,10 +70,22 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
+      await this.auditoriaService.registrarSesion(TipoEventoSesion.LoginFallido, {
+        usuario: user,
+        correo: loginDto.correo,
+        detalle: 'Contraseña incorrecta',
+        ip,
+      });
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const tokens = await this.generateTokens(user.id);
+
+    await this.auditoriaService.registrarSesion(TipoEventoSesion.Login, {
+      usuario: user,
+      correo: user.Correo,
+      ip,
+    });
     const modulosAccesibles =
       await this.seguridadService.obtenerModulosAccesibles(user.id);
 
@@ -76,6 +102,39 @@ export class AuthService {
         modulosAccesibles,
       },
     };
+  }
+
+  // ======================================================
+  // LOGOUT — invalida el refresh token y registra la auditoría.
+  // Si no se envía refreshToken, cierra todas las sesiones del usuario.
+  // (El access token sigue siendo válido hasta que vence, máx. 15 minutos.)
+  // ======================================================
+  async logout(
+    userId: number,
+    refreshToken?: string,
+    ip?: string,
+  ): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (refreshToken) {
+      await this.refreshTokenRepository.update(
+        { token: refreshToken, userId, isActive: true },
+        { isActive: false },
+      );
+    } else {
+      await this.refreshTokenRepository.update(
+        { userId, isActive: true },
+        { isActive: false },
+      );
+    }
+
+    await this.auditoriaService.registrarSesion(TipoEventoSesion.Logout, {
+      usuario: user,
+      correo: user?.Correo,
+      ip,
+    });
+
+    return { message: 'Sesión cerrada correctamente' };
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {

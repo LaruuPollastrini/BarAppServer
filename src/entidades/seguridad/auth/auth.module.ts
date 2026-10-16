@@ -7,6 +7,7 @@ import { User } from '../users/users.entity';
 import { RefreshToken } from './refresh-token.entity';
 import { Grupo } from '../grupos/grupos.entity';
 import { SeguridadModule } from '../seguridad.module';
+import { AuditoriaModule } from '../auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SeguridadModule } from '../seguridad.module';
       signOptions: { expiresIn: '15m' },
     }),
     SeguridadModule,
+    AuditoriaModule,
   ],
   providers: [AuthService],
   controllers: [AuthController],

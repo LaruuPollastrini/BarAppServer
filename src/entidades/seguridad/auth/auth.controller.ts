@@ -6,6 +6,7 @@ import {
   Request,
   Get,
   Param,
+  Ip,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
@@ -27,8 +28,19 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    return this.authService.login(loginDto, ip);
+  }
+
+  // POST /auth/logout   body (opcional): { "refreshToken": "..." }
+  @Post('logout')
+  @UseGuards(AuthGuard('jwt'))
+  async logout(
+    @Request() req: Request & { user: { id: number } },
+    @Body('refreshToken') refreshToken: string | undefined,
+    @Ip() ip: string,
+  ) {
+    return this.authService.logout(req.user.id, refreshToken, ip);
   }
 
   @Post('register')
