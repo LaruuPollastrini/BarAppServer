@@ -127,7 +127,6 @@ INSERT IGNORE INTO `grupo_formulario` (`grupo_id`, `formulario_id`)
 SELECT g.id, f.id
 FROM (
   SELECT 'Cliente' AS grupo, 'Realizar Reserva' AS formulario
-  UNION ALL SELECT 'Admin',     'Realizar Reserva'
   UNION ALL SELECT 'Admin',     'Gestionar Agenda'
   UNION ALL SELECT 'Admin',     'Gestionar Reservas'
   UNION ALL SELECT 'Admin',     'Recibir Reservas'
