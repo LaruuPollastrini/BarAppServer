@@ -1,0 +1,9 @@
+# Credenciales de MySQL para los scripts de resguardo y restauración.
+# 1) Copiá este archivo con el nombre mysql-backup.cnf (en esta misma carpeta)
+# 2) Completá usuario y contraseña
+# mysql-backup.cnf NO se sube a GitHub (está en .gitignore).
+[client]
+user=root
+password=root
+host=localhost
+port=3306
